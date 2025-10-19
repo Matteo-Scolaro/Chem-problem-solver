@@ -9,18 +9,28 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors({ origin: true }));
+app.use(cors());                 // simple for now; we'll tighten later
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static("public"));
 
 const limiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 app.use("/api/", limiter);
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error("Missing OPENAI_API_KEY in .env");
-  process.exit(1);
+// Make OpenAI optional
+const USE_AI = !!process.env.OPENAI_API_KEY;
+let openai = null;
+if (USE_AI) {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// helper to short-circuit endpoints if no key
+function requireAI(res) {
+  if (USE_AI) return false;
+  res.status(503).json({
+    error: "AI is disabled (no OPENAI_API_KEY set on server). The site still loads, but AI features are off."
+  });
+  return true;
+}
 
 const blockedTerms = [
   "synthesize", "how to make", "manufacture", "explosive", "detonator",
@@ -39,6 +49,7 @@ const SYSTEM_PROMPT = `You are ChemBot, a careful chemistry tutor.
 
 // --- Generic Q&A (kept for future use) ---
 app.post("/api/ask", async (req, res) => {
+if (requireAI(res)) return;
   try {
     const { question } = req.body || {};
     if (!question || typeof question !== "string") {
@@ -64,6 +75,7 @@ app.post("/api/ask", async (req, res) => {
 // === Problem Solver: Equation Builder ===
 // Expects: { reactants: "Zn + CuSO4" }
 app.post("/api/solve/equation", async (req, res) => {
+if (requireAI(res)) return;
   try {
     const { reactants } = req.body || {};
     if (!reactants || typeof reactants !== "string") {
@@ -98,6 +110,7 @@ app.post("/api/solve/equation", async (req, res) => {
 // === Problem Solver: VSEPR / Bond Shapes & Allotropes ===
 // Expects: { input: "NH3" or "C (graphite)" or "C granite" } (we will map common typos)
 app.post("/api/solve/vsepr", async (req, res) => {
+if (requireAI(res)) return;
   try {
     let { input } = req.body || {};
     if (!input || typeof input !== "string") {
@@ -131,6 +144,7 @@ app.post("/api/solve/vsepr", async (req, res) => {
 // === Drawings: Bohr / Bohr-Rutherford / Lewis ===
 // Expects: { symbol: "Cl" }
 app.post("/api/draw/element", async (req, res) => {
+if (requireAI(res)) return;
   try {
     const { symbol } = req.body || {};
     if (!symbol || typeof symbol !== "string") {
@@ -162,6 +176,7 @@ Symbol: ${symbol}`;
 // === Advanced solver (university-level) ===
 // Expects: { topic: "thermo|quantum|equilibrium|spectroscopy", prompt: "..." }
 app.post("/api/solve/advanced", async (req, res) => {
+if (requireAI(res)) return;
   try {
     const { topic, prompt } = req.body || {};
     if (!topic || !prompt) return res.status(400).json({ error: "Provide 'topic' and 'prompt'." });
@@ -189,5 +204,8 @@ app.post("/api/solve/advanced", async (req, res) => {
 });
 
 app.listen(port, () => console.log(`Chem AI server running on http://localhost:${port}`));
+
+
+
 
 
