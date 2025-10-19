@@ -1,0 +1,317 @@
+<script type="text/plain" data-filename="public/index.html"><!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChemBot — Problem Solver</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b1020; --card:#111834; --text:#e9ecff; --muted:#aab0d6; --accent:#6ea8ff; --card2:#0d1333; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family:Inter,system-ui,Arial; background:linear-gradient(180deg,#0b1020,#0e1430); color:var(--text); }
+    .wrap{ max-width:1100px; margin:40px auto; padding:0 16px; }
+    .hero{ text-align:center; margin-bottom:24px; }
+    h1{ font-size:32px; margin:0 0 6px; }
+    p.lead{ color:var(--muted); margin:0 0 24px; }
+    .card{ background:var(--card); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+    .grid{ display:grid; gap:12px; }
+    .solver-grid{ grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); margin-top:16px; }
+    .solver{ background:var(--card2); border:1px solid #243063; border-radius:14px; padding:16px; cursor:pointer; transition:transform .08s ease; }
+    .solver:hover{ transform:translateY(-2px); border-color:#3e58b3; }
+    .solver h3{ margin:0 0 8px; font-size:18px; }
+    .solver p{ margin:0; color:var(--muted); font-size:14px; }
+    .footer{ text-align:center; color:#93a1d8; font-size:12px; margin-top:28px; }
+
+    /* Periodic table */
+    .ptable{ display:grid; grid-template-columns:repeat(18, minmax(28px, 1fr)); gap:6px; }
+    .elem{ background:#0b1030; border:1px solid #243063; border-radius:10px; padding:6px; text-align:center; position:relative; }
+    .elem .num{ position:absolute; top:4px; left:6px; font-size:10px; color:#8fa0de; }
+    .elem .sym{ font-size:14px; font-weight:700; }
+    .elem .name{ font-size:10px; color:#8fa0de; }
+    .empty{ visibility:hidden; }
+
+    /* Views */
+    .view{ display:none; }
+    .view.active{ display:block; }
+
+    .form{ display:flex; gap:10px; }
+    input[type=text], select{ flex:1; background:#0b1030; color:var(--text); border:1px solid #243063; border-radius:12px; padding:12px; }
+    button{ background:var(--accent); color:#071122; border:0; padding:12px 16px; border-radius:12px; font-weight:600; cursor:pointer; }
+    button:disabled{ opacity:.6; cursor:not-allowed; }
+    .result{ margin-top:16px; background:#0b1030; padding:14px; border-radius:12px; border:1px solid #243063; white-space:pre-wrap; }
+    .back{ background:#233066; margin-bottom:12px; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .svgwrap{ margin-top:12px; background:#0b1030; border:1px solid #243063; border-radius:12px; padding:12px; }
+    .cols{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>🔬 ChemBot — Problem Solver</h1>
+      <p class="lead">A single-page toolkit for students: interactive periodic table and guided solvers. No chats, just answers.</p>
+    </div>
+
+    <!-- HOME VIEW -->
+    <section id="home" class="view active">
+      <div class="card" style="margin-bottom:16px;">
+        <h2 style="margin:0 0 12px;">Periodic Table</h2>
+        <div id="ptable" class="ptable"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 8px;">Problem Solvers</h2>
+        <div class="grid solver-grid">
+          <div class="solver" data-view="equation">
+            <h3>Equation Builder</h3>
+            <p>Enter reactants → products, balanced equation, type, and ΔH estimate.</p>
+          </div>
+          <div class="solver" data-view="vsepr">
+            <h3>Bond Shapes & VSEPR</h3>
+            <p>Enter a molecule or allotrope (e.g., NH3, C (graphite)) → shape, hybridization, SVG sketch.</p>
+          </div>
+          <div class="solver" data-view="drawings">
+            <h3>Structure Drawings</h3>
+            <p>Bohr, Bohr‑Rutherford, and Lewis dot diagrams — pick an element.</p>
+          </div>
+          <div class="solver" data-view="stoich">
+            <h3>Stoichiometry Solver</h3>
+            <p>Mass, moles, limiting reagent, percent yield. (Coming next)</p>
+          </div>
+          <div class="solver" data-view="solutions">
+            <h3>Solutions & Concentration</h3>
+            <p>Compute dilutions with <span class="mono">C₁V₁ = C₂V₂</span>.</p>
+          </div>
+          <div class="solver" data-view="advanced">
+            <h3>Advanced (University)</h3>
+            <p>Thermo, quantum, spectroscopy, equilibrium — structured solutions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EQUATION BUILDER VIEW -->
+    <section id="equation" class="view">
+      <button class="back" onclick="switchView('home')">← Back</button>
+      <div class="card">
+        <h2 style="margin:0 0 8px;">Equation Builder</h2>
+        <p class="lead">Type reactants (e.g., <span class="mono">Zn + CuSO4</span>). The AI will balance, classify, and estimate ΔH.</p>
+        <div class="form">
+          <input id="eq-react" type="text" placeholder="e.g., Zn + CuSO4" />
+          <button id="eq-run">Solve</button>
+        </div>
+        <div id="eq-out" class="result">Results will appear here.</div>
+      </div>
+    </section>
+
+    <!-- VSEPR VIEW -->
+    <section id="vsepr" class="view">
+      <button class="back" onclick="switchView('home')">← Back</button>
+      <div class="card">
+        <h2 style="margin:0 0 8px;">Bond Shapes & VSEPR</h2>
+        <p class="lead">Enter a molecule or carbon allotrope (e.g., <span class="mono">NH3</span>, <span class="mono">CO2</span>, <span class="mono">C (graphite)</span>).</p>
+        <div class="form">
+          <input id="vs-input" type="text" placeholder="e.g., NH3" />
+          <button id="vs-run">Analyze</button>
+        </div>
+        <div id="vs-out" class="result">Shape, hybridization, and notes will appear here.</div>
+        <div id="vs-svg" class="svgwrap"></div>
+      </div>
+    </section>
+
+    <!-- DRAWINGS VIEW -->
+    <section id="drawings" class="view">
+      <button class="back" onclick="switchView('home')">← Back</button>
+      <div class="card">
+        <h2 style="margin:0 0 8px;">Structure Drawings</h2>
+        <div class="form">
+          <select id="draw-symbol"></select>
+          <button id="draw-run">Draw</button>
+        </div>
+        <div class="cols">
+          <div>
+            <h3>Bohr</h3>
+            <div id="svg-bohr" class="svgwrap"></div>
+          </div>
+          <div>
+            <h3>Bohr‑Rutherford</h3>
+            <div id="svg-br" class="svgwrap"></div>
+          </div>
+          <div>
+            <h3>Lewis Dot</h3>
+            <div id="svg-lewis" class="svgwrap"></div>
+          </div>
+        </div>
+        <div id="draw-notes" class="result"></div>
+      </div>
+    </section>
+
+    <!-- Placeholder VIEWS -->
+    <section id="stoich" class="view">
+      <button class="back" onclick="switchView('home')">← Back</button>
+      <div class="card"><h2>Stoichiometry Solver</h2><p>Coming next — tell me the fields you want (e.g., given mass, target product, etc.).</p></div>
+    </section>
+
+    <section id="solutions" class="view">
+      <button class="back" onclick="switchView('home')">← Back</button>
+      <div class="card"><h2>Solutions & Concentration</h2><p>Use the dilution identity <span class="mono">C₁V₁ = C₂V₂</span>. (We can add inputs and calculator next.)</p></div>
+    </section>
+
+    <section id="advanced" class="view">
+      <button class="back" onclick="switchView('home')">← Back</button>
+      <div class="card">
+        <h2>Advanced (University)</h2>
+        <p class="lead">Pick a topic and describe your problem.</p>
+        <div class="form">
+          <select id="adv-topic">
+            <option value="thermo">Thermodynamics</option>
+            <option value="equilibrium">Chemical Equilibrium</option>
+            <option value="spectroscopy">Spectroscopy</option>
+            <option value="quantum">Quantum / MO Theory</option>
+          </select>
+          <input id="adv-prompt" type="text" placeholder="e.g., Calculate ΔG for reaction at 298 K given ΔH and ΔS." />
+          <button id="adv-run">Solve</button>
+        </div>
+        <div id="adv-out" class="result">Outline, formulas, and result will appear here.</div>
+      </div>
+    </section>
+
+    <div class="footer">Built for learning. Answers only; no hazardous how‑to instructions.</div>
+  </div>
+
+  <script>
+    // --- Client-side view switching ---
+    function switchView(id){
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      window.scrollTo({ top:0, behavior:'smooth' });
+    }
+    document.querySelectorAll('.solver').forEach(card=>{
+      card.addEventListener('click', ()=> switchView(card.dataset.view));
+    });
+
+    // --- Minimal periodic table (layout mask + subset of data for demo) ---
+    const PT_LAYOUT = [
+      'H', ...Array(16).fill(''), 'He',
+      'Li','Be', ...Array(10).fill(''), 'B','C','N','O','F','Ne',
+      'Na','Mg', ...Array(10).fill(''), 'Al','Si','P','S','Cl','Ar',
+      'K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Kr',
+      'Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe',
+      'Cs','Ba','La','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn',
+      'Fr','Ra','Ac','Rf','Db','Sg','Bh','Hs','Mt','Ds','Rg','Cn','Nh','Fl','Mc','Lv','Ts','Og'
+    ];
+
+    const ELEMENTS = {
+      H:{name:'Hydrogen',num:1}, He:{name:'Helium',num:2}, Li:{name:'Lithium',num:3}, Be:{name:'Beryllium',num:4}, B:{name:'Boron',num:5}, C:{name:'Carbon',num:6}, N:{name:'Nitrogen',num:7}, O:{name:'Oxygen',num:8}, F:{name:'Fluorine',num:9}, Ne:{name:'Neon',num:10},
+      Na:{name:'Sodium',num:11}, Mg:{name:'Magnesium',num:12}, Al:{name:'Aluminium',num:13}, Si:{name:'Silicon',num:14}, P:{name:'Phosphorus',num:15}, S:{name:'Sulfur',num:16}, Cl:{name:'Chlorine',num:17}, Ar:{name:'Argon',num:18},
+      K:{name:'Potassium',num:19}, Ca:{name:'Calcium',num:20}, Sc:{name:'Scandium',num:21}, Ti:{name:'Titanium',num:22}, V:{name:'Vanadium',num:23}, Cr:{name:'Chromium',num:24}, Mn:{name:'Manganese',num:25}, Fe:{name:'Iron',num:26}, Co:{name:'Cobalt',num:27}, Ni:{name:'Nickel',num:28}, Cu:{name:'Copper',num:29}, Zn:{name:'Zinc',num:30}, Ga:{name:'Gallium',num:31}, Ge:{name:'Germanium',num:32}, As:{name:'Arsenic',num:33}, Se:{name:'Selenium',num:34}, Br:{name:'Bromine',num:35}, Kr:{name:'Krypton',num:36},
+      Rb:{name:'Rubidium',num:37}, Sr:{name:'Strontium',num:38}, Y:{name:'Yttrium',num:39}, Zr:{name:'Zirconium',num:40}, Nb:{name:'Niobium',num:41}, Mo:{name:'Molybdenum',num:42}, Tc:{name:'Technetium',num:43}, Ru:{name:'Ruthenium',num:44}, Rh:{name:'Rhodium',num:45}, Pd:{name:'Palladium',num:46}, Ag:{name:'Silver',num:47}, Cd:{name:'Cadmium',num:48}, In:{name:'Indium',num:49}, Sn:{name:'Tin',num:50}, Sb:{name:'Antimony',num:51}, Te:{name:'Tellurium',num:52}, I:{name:'Iodine',num:53}, Xe:{name:'Xenon',num:54},
+      Cs:{name:'Cesium',num:55}, Ba:{name:'Barium',num:56}, La:{name:'Lanthanum',num:57}, Hf:{name:'Hafnium',num:72}, Ta:{name:'Tantalum',num:73}, W:{name:'Tungsten',num:74}, Re:{name:'Rhenium',num:75}, Os:{name:'Osmium',num:76}, Ir:{name:'Iridium',num:77}, Pt:{name:'Platinum',num:78}, Au:{name:'Gold',num:79}, Hg:{name:'Mercury',num:80}, Tl:{name:'Thallium',num:81}, Pb:{name:'Lead',num:82}, Bi:{name:'Bismuth',num:83}, Po:{name:'Polonium',num:84}, At:{name:'Astatine',num:85}, Rn:{name:'Radon',num:86},
+      Fr:{name:'Francium',num:87}, Ra:{name:'Radium',num:88}, Ac:{name:'Actinium',num:89}, Rf:{name:'Rutherfordium',num:104}, Db:{name:'Dubnium',num:105}, Sg:{name:'Seaborgium',num:106}, Bh:{name:'Bohrium',num:107}, Hs:{name:'Hassium',num:108}, Mt:{name:'Meitnerium',num:109}, Ds:{name:'Darmstadtium',num:110}, Rg:{name:'Roentgenium',num:111}, Cn:{name:'Copernicium',num:112}, Nh:{name:'Nihonium',num:113}, Fl:{name:'Flerovium',num:114}, Mc:{name:'Moscovium',num:115}, Lv:{name:'Livermorium',num:116}, Ts:{name:'Tennessine',num:117}, Og:{name:'Oganesson',num:118}
+    };
+
+    const ptable = document.getElementById('ptable');
+    PT_LAYOUT.forEach(sym => {
+      const div = document.createElement('div');
+      div.className = 'elem' + (sym? '' : ' empty');
+      if(sym){
+        const e = ELEMENTS[sym] || { name:'', num:'?' };
+        div.innerHTML = `<div class="num">${e.num}</div><div class="sym">${sym}</div><div class="name">${e.name}</div>`;
+        div.title = `${e.num} — ${e.name} (${sym})`;
+      }
+      ptable.appendChild(div);
+    });
+
+    // Populate element select for drawings
+    const drawSel = document.getElementById('draw-symbol');
+    Object.keys(ELEMENTS).forEach(k=>{
+      const o = document.createElement('option'); o.value = k; o.textContent = `${k} — ${ELEMENTS[k].name}`; drawSel.appendChild(o);
+    });
+
+    // --- Equation Builder client ---
+    const runBtn = document.getElementById('eq-run');
+    const reactEl = document.getElementById('eq-react');
+    const eqOut = document.getElementById('eq-out');
+    function setEqLoading(b){ runBtn.disabled = b; runBtn.textContent = b? 'Solving…' : 'Solve'; }
+    runBtn.addEventListener('click', async ()=>{
+      const reactants = (reactEl.value || '').trim(); if(!reactants) return;
+      setEqLoading(true); eqOut.textContent='';
+      try{
+        const r = await fetch('/api/solve/equation',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reactants }) });
+        const data = await r.json();
+        if(data.error){ eqOut.textContent = data.error; }
+        else{
+          const lines = [];
+          if(data.balanced_equation) lines.push(`Balanced: ${data.balanced_equation}`);
+          if(Array.isArray(data.products)) lines.push(`Products: ${data.products.join(', ')}`);
+          if(data.reaction_type) lines.push(`Type: ${data.reaction_type}`);
+          if(typeof data.enthalpy_kJ_per_mol !== 'undefined') lines.push(`ΔH ≈ ${data.enthalpy_kJ_per_mol} kJ per balanced reaction`);
+          if(data.notes) lines.push(`Notes: ${data.notes}`);
+          eqOut.textContent = lines.join('\n');
+        }
+      }catch(e){ eqOut.textContent = 'Network error.'; }
+      finally{ setEqLoading(false); }
+    });
+
+    // --- VSEPR client ---
+    const vsBtn = document.getElementById('vs-run');
+    const vsIn = document.getElementById('vs-input');
+    const vsOut = document.getElementById('vs-out');
+    const vsSvg = document.getElementById('vs-svg');
+    function setVsLoading(b){ vsBtn.disabled = b; vsBtn.textContent = b? 'Analyzing…' : 'Analyze'; }
+    vsBtn.addEventListener('click', async ()=>{
+      const input = (vsIn.value || '').trim(); if(!input) return;
+      setVsLoading(true); vsOut.textContent=''; vsSvg.innerHTML='';
+      try{
+        const r = await fetch('/api/solve/vsepr',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ input }) });
+        const data = await r.json();
+        if(data.error){ vsOut.textContent = data.error; }
+        else{
+          const lines = [];
+          if(data.name) lines.push(`Name: ${data.name}`);
+          if(data.formula) lines.push(`Formula: ${data.formula}`);
+          if(data.system) lines.push(`System: ${data.system}`);
+          if(data.shape) lines.push(`Shape: ${data.shape}`);
+          if(data.electron_domains) lines.push(`Electron domains: ${data.electron_domains}`);
+          if(data.bond_angles_deg) lines.push(`Bond angles: ${data.bond_angles_deg}`);
+          if(data.hybridization) lines.push(`Hybridization: ${data.hybridization}`);
+          if(data.bond_count) lines.push(`Bond count: ${data.bond_count}`);
+          if(data.description) lines.push(`Notes: ${data.description}`);
+          vsOut.textContent = lines.join('\n');
+          if(data.svg){ vsSvg.innerHTML = data.svg; }
+        }
+      }catch(e){ vsOut.textContent = 'Network error.'; }
+      finally{ setVsLoading(false); }
+    });
+
+    // --- Drawings client ---
+    const dBtn = document.getElementById('draw-run');
+    const svgBohr = document.getElementById('svg-bohr');
+    const svgBR = document.getElementById('svg-br');
+    const svgLewis = document.getElementById('svg-lewis');
+    const drawNotes = document.getElementById('draw-notes');
+    function setDrawLoading(b){ dBtn.disabled = b; dBtn.textContent = b? 'Drawing…' : 'Draw'; }
+    dBtn.addEventListener('click', async ()=>{
+      const symbol = drawSel.value; if(!symbol) return;
+      setDrawLoading(true); svgBohr.innerHTML=''; svgBR.innerHTML=''; svgLewis.innerHTML=''; drawNotes.textContent='';
+      try{
+        const r = await fetch('/api/draw/element',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ symbol }) });
+        const data = await r.json();
+        if(data.error){ drawNotes.textContent = data.error; }
+        else{
+          if(data.bohr) svgBohr.innerHTML = data.bohr;
+          if(data.bohr_rutherford) svgBR.innerHTML = data.bohr_rutherford;
+          if(data.lewis) svgLewis.innerHTML = data.lewis;
+          const extras = [];
+          if(typeof data.valence_electrons !== 'undefined') extras.push(`Valence electrons: ${data.valence_electrons}`);
+          if(data.notes) extras.push(data.notes);
+          drawNotes.textContent = extras.join('\n');
+        }
+      }catch(e){ drawNotes.textContent = 'Network error.'; }
+      finally{ setDrawLoading(false); }
+    });
+  </script>
+</body>
+</html>
+</script>
