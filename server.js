@@ -1,4 +1,3 @@
-<script type="text/plain" data-filename="server.js">
 import express from "express";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
@@ -205,6 +204,6 @@ if (requireAI(res)) return;
 });
 
 app.listen(port, () => console.log(`Chem AI server running on http://localhost:${port}`));
-</script>
+
 
 
