@@ -193,6 +193,53 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    // -------- Periodic Table + element list --------
+    const PT_LAYOUT = [
+      'H', ...Array(16).fill(''), 'He',
+      'Li','Be', ...Array(10).fill(''), 'B','C','N','O','F','Ne',
+      'Na','Mg', ...Array(10).fill(''), 'Al','Si','P','S','Cl','Ar',
+      'K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Kr',
+      'Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe',
+      'Cs','Ba','La','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn',
+      'Fr','Ra','Ac','Rf','Db','Sg','Bh','Hs','Mt','Ds','Rg','Cn','Nh','Fl','Mc','Lv','Ts','Og'
+    ];
+
+    const ELEMENTS = {
+      H:{name:'Hydrogen',num:1}, He:{name:'Helium',num:2}, Li:{name:'Lithium',num:3}, Be:{name:'Beryllium',num:4}, B:{name:'Boron',num:5}, C:{name:'Carbon',num:6}, N:{name:'Nitrogen',num:7}, O:{name:'Oxygen',num:8}, F:{name:'Fluorine',num:9}, Ne:{name:'Neon',num:10},
+      Na:{name:'Sodium',num:11}, Mg:{name:'Magnesium',num:12}, Al:{name:'Aluminium',num:13}, Si:{name:'Silicon',num:14}, P:{name:'Phosphorus',num:15}, S:{name:'Sulfur',num:16}, Cl:{name:'Chlorine',num:17}, Ar:{name:'Argon',num:18},
+      K:{name:'Potassium',num:19}, Ca:{name:'Calcium',num:20}, Sc:{name:'Scandium',num:21}, Ti:{name:'Titanium',num:22}, V:{name:'Vanadium',num:23}, Cr:{name:'Chromium',num:24}, Mn:{name:'Manganese',num:25}, Fe:{name:'Iron',num:26}, Co:{name:'Cobalt',num:27}, Ni:{name:'Nickel',num:28}, Cu:{name:'Copper',num:29}, Zn:{name:'Zinc',num:30}, Ga:{name:'Gallium',num:31}, Ge:{name:'Germanium',num:32}, As:{name:'Arsenic',num:33}, Se:{name:'Selenium',num:34}, Br:{name:'Bromine',num:35}, Kr:{name:'Krypton',num:36},
+      Rb:{name:'Rubidium',num:37}, Sr:{name:'Strontium',num:38}, Y:{name:'Yttrium',num:39}, Zr:{name:'Zirconium',num:40}, Nb:{name:'Niobium',num:41}, Mo:{name:'Molybdenum',num:42}, Tc:{name:'Technetium',num:43}, Ru:{name:'Ruthenium',num:44}, Rh:{name:'Rhodium',num:45}, Pd:{name:'Palladium',num:46}, Ag:{name:'Silver',num:47}, Cd:{name:'Cadmium',num:48}, In:{name:'Indium',num:49}, Sn:{name:'Tin',num:50}, Sb:{name:'Antimony',num:51}, Te:{name:'Tellurium',num:52}, I:{name:'Iodine',num:53}, Xe:{name:'Xenon',num:54},
+      Cs:{name:'Cesium',num:55}, Ba:{name:'Barium',num:56}, La:{name:'Lanthanum',num:57}, Hf:{name:'Hafnium',num:72}, Ta:{name:'Tantalum',num:73}, W:{name:'Tungsten',num:74}, Re:{name:'Rhenium',num:75}, Os:{name:'Osmium',num:76}, Ir:{name:'Iridium',num:77}, Pt:{name:'Platinum',num:78}, Au:{name:'Gold',num:79}, Hg:{name:'Mercury',num:80}, Tl:{name:'Thallium',num:81}, Pb:{name:'Lead',num:82}, Bi:{name:'Bismuth',num:83}, Po:{name:'Polonium',num:84}, At:{name:'Astatine',num:85}, Rn:{name:'Radon',num:86},
+      Fr:{name:'Francium',num:87}, Ra:{name:'Radium',num:88}, Ac:{name:'Actinium',num:89}, Rf:{name:'Rutherfordium',num:104}, Db:{name:'Dubnium',num:105}, Sg:{name:'Seaborgium',num:106}, Bh:{name:'Bohrium',num:107}, Hs:{name:'Hassium',num:108}, Mt:{name:'Meitnerium',num:109}, Ds:{name:'Darmstadtium',num:110}, Rg:{name:'Roentgenium',num:111}, Cn:{name:'Copernicium',num:112}, Nh:{name:'Nihonium',num:113}, Fl:{name:'Flerovium',num:114}, Mc:{name:'Moscovium',num:115}, Lv:{name:'Livermorium',num:116}, Ts:{name:'Tennessine',num:117}, Og:{name:'Oganesson',num:118}
+    };
+
+    // Render the table
+    const ptable = document.getElementById('ptable');
+    if (ptable){
+      ptable.innerHTML = '';
+      PT_LAYOUT.forEach(sym => {
+        const div = document.createElement('div');
+        div.className = 'elem' + (sym ? '' : ' empty');
+        if (sym){
+          const e = ELEMENTS[sym] || { name:'', num:'?' };
+          div.innerHTML = `<div class="num">${e.num}</div><div class="sym">${sym}</div><div class="name">${e.name}</div>`;
+          div.title = `${e.num} — ${e.name} (${sym})`;
+        }
+        ptable.appendChild(div);
+      });
+    }
+
+    // Fill the element dropdown in Drawings
+    const drawSelInit = document.getElementById('draw-symbol');
+    if (drawSelInit){
+      drawSelInit.innerHTML = '';
+      Object.keys(ELEMENTS).forEach(k=>{
+        const o = document.createElement('option');
+        o.value = k;
+        o.textContent = `${k} — ${ELEMENTS[k].name}`;
+        drawSelInit.appendChild(o);
+      });
+    }
     // Tile clicks
     document.querySelectorAll('.solver').forEach(card=>{
       const view = card.getAttribute('data-view');
@@ -346,6 +393,7 @@
 </script>
 </body>
 </html>
+
 
 
 
