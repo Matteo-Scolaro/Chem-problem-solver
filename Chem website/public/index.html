@@ -241,7 +241,7 @@
       const reactants = (reactEl.value || '').trim(); if(!reactants) return;
       setEqLoading(true); eqOut.textContent='';
       try{
-        const r = await fetch('/api/solve/equation',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reactants }) });
+        const r = await fetch(`${API_BASE}/api/solve/equation',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ reactants }) });
         const data = await r.json();
         if(data.error){ eqOut.textContent = data.error; }
         else{
@@ -267,7 +267,7 @@
       const input = (vsIn.value || '').trim(); if(!input) return;
       setVsLoading(true); vsOut.textContent=''; vsSvg.innerHTML='';
       try{
-        const r = await fetch('/api/solve/vsepr',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ input }) });
+        const r = await fetch(`${API_BASE}/api/solve/vsepr',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ input }) });
         const data = await r.json();
         if(data.error){ vsOut.textContent = data.error; }
         else{
@@ -299,7 +299,7 @@
       const symbol = drawSel.value; if(!symbol) return;
       setDrawLoading(true); svgBohr.innerHTML=''; svgBR.innerHTML=''; svgLewis.innerHTML=''; drawNotes.textContent='';
       try{
-        const r = await fetch('/api/draw/element',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ symbol }) });
+        const r = await fetch(`${API_BASE}/api/draw/element',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ symbol }) });
         const data = await r.json();
         if(data.error){ drawNotes.textContent = data.error; }
         else{
@@ -317,6 +317,7 @@
   </script>
 </body>
 </html>
+
 
 
 
