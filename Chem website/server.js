@@ -9,7 +9,21 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());                 // simple for now; we'll tighten later
+import cors from "cors";
+
+const ALLOWED_ORIGINS = [
+  "https://<your-netlify-site>.netlify.app",
+  "http://localhost:3000"
+];
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      cb(new Error("Not allowed by CORS"));
+    },
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static("public"));
 
@@ -204,6 +218,7 @@ if (requireAI(res)) return;
 });
 
 app.listen(port, () => console.log(`Chem AI server running on http://localhost:${port}`));
+
 
 
 
