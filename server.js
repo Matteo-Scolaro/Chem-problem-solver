@@ -12,7 +12,7 @@ const port = process.env.PORT || 3000;
 import cors from "cors";
 
 const ALLOWED_ORIGINS = [
-  "https://<your-netlify-site>.netlify.app",
+  "https://chem-problem-solver.netlify.app/",
   "http://localhost:3000"
 ];
 
@@ -218,6 +218,7 @@ if (requireAI(res)) return;
 });
 
 app.listen(port, () => console.log(`Chem AI server running on http://localhost:${port}`));
+
 
 
 
