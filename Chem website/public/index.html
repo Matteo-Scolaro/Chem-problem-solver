@@ -264,12 +264,7 @@
         setEqLoading(true);
         if (eqOut) eqOut.textContent = '';
         try {
-          const r = await fetch(`${API_BASE}/api/solve/equation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reactants })
-          });
-          const data = await r.json();
+       const data = await LocalChem.localSolveEquation(reactants);
           if (data.error) {
             eqOut.textContent = data.error;
           } else {
@@ -479,6 +474,7 @@ window.LocalChem = { localSolveEquation, localSolveVSEPR, localDrawElement };
 </script>
 </body>
 </html>
+
 
 
 
