@@ -14,14 +14,16 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000"
 ];
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-      cb(new Error("Not allowed by CORS"));
-    },
-  })
-);
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET","POST","OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+}));
+
+app.options("*", cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static("public"));
 
@@ -216,6 +218,7 @@ if (requireAI(res)) return;
 });
 
 app.listen(port, () => console.log(`Chem AI server running on http://localhost:${port}`));
+
 
 
 
