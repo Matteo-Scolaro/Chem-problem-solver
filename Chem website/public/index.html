@@ -228,94 +228,9 @@
 
   <!-- C) your main app code file (listeners/UI). Keep this and remove any extra inline scripts. -->
   <script src="./app.js" defer></script>
-  <script>
-window.PERIODIC = {
-  Z: {H:1, He:2, Li:3, Be:4, B:5, C:6, N:7, O:8, F:9, Ne:10, Na:11, Mg:12, Al:13, Si:14, P:15, S:16, Cl:17, Ar:18, K:19, Ca:20},
-  valence: {H:1, He:0, Li:1, Be:2, B:3, C:4, N:3, O:2, F:1, Ne:0, Na:1, Mg:2, Al:3, Si:4, P:3, S:2, Cl:1, Ar:0, K:1, Ca:2}
-};
-window.BOND_ENERGY = {"H-H":436,"O=O":498,"C-H":413,"C-C":348,"C=C":614,"C≡C":839,"C=O":799,"O-H":463,"N≡N":945,"N-H":391,"C-O":358};
-</script>
-  <script>
-// --- equation balancer (small, robust) ---
-function parseFormula(f){const s=[{}];const r=/([A-Z][a-z]?|\(|\)|\d+)/g;let m;while((m=r.exec(f))){const t=m[1];if(t==='('){s.push({});continue}if(t===')'){const top=s.pop();const mult=/^\d+/.exec(f.slice(r.lastIndex))?.[0];const k=mult?parseInt(mult,10):1;if(mult)r.lastIndex+=mult.length;for(const e in top)s[s.length-1][e]=(s[s.length-1][e]||0)+top[e]*k;continue}if(/^\d+$/.test(t))continue;const el=t;const mult=/^\d+/.exec(f.slice(r.lastIndex))?.[0];const k=mult?parseInt(mult,10):1;if(mult)r.lastIndex+=mult.length;s[s.length-1][el]=(s[s.length-1][el]||0)+k}return s[0]}
-function parseSide(side){return side.split('+').map(x=>{const t=x.trim();const m=/^\s*(\d+)\s+(.+)$/.exec(t);return m?{coef:parseInt(m[1],10),formula:m[2].trim()}:{coef:1,formula:t}})}
-function buildMatrix(lhs,rhs){const sp=[...lhs,...rhs],els=new Set();sp.forEach(p=>{p.comp=parseFormula(p.formula);Object.keys(p.comp).forEach(k=>els.add(k))});const e=[...els],C=sp.length,R=e.length,A=[...Array(R)].map(()=>Array(C).fill(0));e.forEach((el,i)=>{lhs.forEach((p,j)=>A[i][j]=p.comp[el]||0);rhs.forEach((p,j)=>A[i][j+lhs.length]=-(p.comp[el]||0))});return {A,sp}}
-function balanceEquation(input){const [L,R]=input.split('->').map(s=>s.trim());if(!L||!R)throw new Error("Use 'reactants -> products'");const lhs=parseSide(L),rhs=parseSide(R);const {A,sp}=buildMatrix(lhs,rhs);const rows=A.length+1,cols=A[0].length,M=[...Array(rows)].map(()=>Array(cols).fill(0));for(let i=0;i<A.length;i++)for(let j=0;j<cols;j++)M[i][j]=A[i][j];M[rows-1][cols-1]=1;const b=Array(rows).fill(0);b[rows-1]=1;const aug=M.map((row,i)=>row.concat([b[i]]));const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);const lcm=(a,b)=>Math.abs(a*b)/gcd(a,b);for(let col=0,row=0;col<cols&&row<rows;col++){let piv=row;while(piv<rows&&aug[piv][col]===0)piv++;if(piv===rows)continue;[aug[row],aug[piv]]=[aug[piv],aug[row]];let pv=aug[row][col];for(let c=col;c<=cols;c++)aug[row][c]/=pv;for(let r=0;r<rows;r++){if(r===row)continue;const f=aug[r][col];if(f!==0)for(let c=col;c<=cols;c++)aug[r][c]-=f*aug[row][c]}row++}const x=aug.slice(0,cols).map(r=>r[cols]||0);const den=x.map(v=>{const s=v.toString();return s.includes('.')?10**s.split('.')[1].length:1});const LCM=den.reduce((p,c)=>lcm(p,c),1);let nums=x.map(v=>Math.round(v*LCM));const G=nums.reduce((p,c)=>gcd(p,c),nums[0]||1);nums=nums.map(v=>Math.abs(v/G));const l=nums.slice(0,lhs.length),rr=nums.slice(lhs.length);const left=lhs.map((p,i)=>`${l[i]===1?'':l[i]+' '}${p.formula}`).join(' + ');const right=rhs.map((p,i)=>`${rr[i]===1?'':rr[i]+' '}${p.formula}`).join(' + ');return {balanced:`${left} -> ${right}`, left:l, right:rr}}
-async function localSolveEquation(userInput){ // accepts "H2 + O2 -> H2O" or just "H2 + O2"
-  const s=userInput.includes('->')?userInput:`${userInput} -> ?`; // UI may pass reactants only; you can pre-fill products later
-  const {balanced}=balanceEquation(s.replace(/\?$/,'H2O')); // tiny convenience for demo
-  return {
-    balanced_equation: balanced,
-    products: balanced.split('->')[1].trim().split('+').map(x=>x.trim()),
-    reaction_type: "balanced",
-    enthalpy_kJ_per_mol: null,
-    notes: "Balanced locally; ΔH not estimated in static mode."
-  };
-}
-
-// --- VSEPR (rule-of-thumb) ---
-function guessVSEPR(formula){
-  const known={
-    CO2:{shape:"linear",domains:"2 (2 bonding)",angles:"180°",hyb:"sp"},
-    BF3:{shape:"trigonal planar",domains:"3 (3 bonding)",angles:"120°",hyb:"sp2"},
-    SO2:{shape:"bent",domains:"3 (2 bonding, 1 lone)",angles:"~119°",hyb:"sp2"},
-    CH4:{shape:"tetrahedral",domains:"4 (4 bonding)",angles:"109.5°",hyb:"sp3"},
-    NH3:{shape:"trigonal pyramidal",domains:"4 (3 bonding, 1 lone)",angles:"~107°",hyb:"sp3"},
-    H2O:{shape:"bent",domains:"4 (2 bonding, 2 lone)",angles:"~104.5°",hyb:"sp3"},
-    PCl5:{shape:"trigonal bipyramidal",domains:"5",angles:"90°/120°",hyb:"sp3d"},
-    SF6:{shape:"octahedral",domains:"6",angles:"90°",hyb:"sp3d2"},
-    "C(graphite)":{system:"network",shape:"planar layers",domains:"3 per C",angles:"120°",hyb:"sp2"},
-    "C(diamond)":{system:"network",shape:"tetrahedral network",domains:"4 per C",angles:"109.5°",hyb:"sp3"},
-  };
-  const key=formula.replace(/\s+/g,'');
-  const k = known[key] || known[key.toUpperCase()] || known[key.replace(/[()]/g,'')];
-  if(k) return {system:k.system||"molecule", name:key, formula:key, ...k, svg:null};
-
-  // very-lightweight fallback: central atom = first element; treat others as sigma bonds
-  const m=/^([A-Z][a-z]?)/.exec(key); const central=m?m[1]:"X";
-  const counts={}; (key.match(/[A-Z][a-z]?\d*/g)||[]).forEach(tok=>{const el=/^[A-Z][a-z]?/.exec(tok)[0];const n=parseInt(tok.slice(el.length)||"1",10);counts[el]=(counts[el]||0)+n;});
-  const bonds=(Object.entries(counts).reduce((a,[el,n])=>el===central?a:a+n,0));
-  const V=window.PERIODIC.valence[central]??4; const lone=Math.max(0, V - bonds);
-  const domains=bonds + (lone>0?1:0) + (lone>2?1:0); // crude
-  const map={2:"linear",3: lone? "bent":"trigonal planar",4: lone>=2?"bent":lone===1?"trigonal pyramidal":"tetrahedral"};
-  const ang={linear:"180°","trigonal planar":"120°",tetrahedral:"109.5°","trigonal pyramidal":"~107°",bent:"~104–119°"};
-  const hybMap={linear:"sp","trigonal planar":"sp2",tetrahedral:"sp3","trigonal pyramidal":"sp3",bent:"sp2/sp3"};
-  const shape=map[domains]||"unknown";
-  return {system:"molecule", name:key, formula:key, shape, electron_domains:`${domains} (approx)`, bond_angles_deg:ang[shape]||"—", hybridization:hybMap[shape]||"—", svg:null};
-}
-async function localSolveVSEPR(input){
-  const d=guessVSEPR(input.replace(/granite/ig,'graphite'));
-  // simple dot SVG
-  const svg=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><circle cx="200" cy="150" r="28" stroke="black" fill="none"/><text x="200" y="156" text-anchor="middle" font-family="sans-serif" font-size="18">${d.formula}</text></svg>`;
-  return {...d, svg};
-}
-
-// --- Drawings: Bohr / Lewis (first 20 elements) ---
-function shells(z){const s=[];let left=z;const cap=[2,8,8,18];for(let i=0;i<cap.length&&left>0;i++){const take=Math.min(cap[i],left);s.push(take);left-=take}return s}
-async function localDrawElement(symbol){
-  const Z=window.PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
-  const s=shells(Z); const v=window.PERIODIC.valence[symbol]??(s[s.length-1]||0);
-  const bohr=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="200" cy="150" r="10" fill="black"/>
-  ${s.map((n,i)=>`<circle cx="200" cy="150" r="${40+30*i}" fill="none" stroke="black"/><!-- ${n} e- -->`).join("")}
-  <text x="200" y="290" text-anchor="middle" font-family="sans-serif" font-size="14">${symbol} — shells ${s.join(", ")}</text>
-  </svg>`;
-  const lewis=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-  <text x="200" y="150" text-anchor="middle" font-family="sans-serif" font-size="64">${symbol}</text>
-  ${Array.from({length:v}).map((_,i)=>{
-    const ang=(i/v)*2*Math.PI, R=70, x=200+R*Math.cos(ang), y=150+R*Math.sin(ang);
-    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" />`;
-  }).join("")}
-  <text x="200" y="290" text-anchor="middle" font-family="sans-serif" font-size="14">Valence electrons: ${v}</text>
-  </svg>`;
-  return {valence_electrons:v, bohr, bohr_rutherford:bohr, lewis, notes:"Simple model (first 20 elements supported)."};
-}
-
-// expose
-window.LocalChem = { localSolveEquation, localSolveVSEPR, localDrawElement };
-</script>
 </body>
 </html>
+
 
 
 
