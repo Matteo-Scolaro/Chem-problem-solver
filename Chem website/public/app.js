@@ -11,12 +11,13 @@ function on(el,ev,cb){el&&el.addEventListener(ev,cb)}
     btn.disabled=true; out.textContent='Balancing…';
     try{
       const d = await LocalChem.localSolveEquation(react);
+      if (d.error) { out.textContent = d.error; return; }
       const lines=[];
       lines.push(`<span class="title">Balanced:</span>\n<b>${d.balanced_equation}</b>`);
-      if(Array.isArray(d.products)) lines.push(`<span class="title">Products:</span>\n${d.products.join(', ')}`);
+      if(d.products?.length) lines.push(`<span class="title">Products:</span>\n${d.products.join(', ')}`);
       if(d.reaction_type) lines.push(`<span class="title">Type:</span>\n${d.reaction_type}`);
-      if(d.enthalpy_kJ_per_mol!=null) lines.push(`<span class="title">ΔH (est.):</span>\n${d.enthalpy_kJ_per_mol} kJ/mol`);
-      if(d.steps) lines.push(`<span class="title">Steps:</span>\n${d.steps.join(' → ')}`);
+      if(d.enthalpy_kJ_per_mol!=null) lines.push(`<span class="title">ΔH° (298 K):</span>\n${d.enthalpy_kJ_per_mol} kJ/mol`);
+      if(d.mechanism?.length) lines.push(`<span class="title">Mechanism (outline):</span>\n• ${d.mechanism.join('\n• ')}`);
       if(d.notes) lines.push(`<span class="title">Notes:</span>\n${d.notes}`);
       out.innerHTML = lines.join('\n\n');
     }catch(err){ out.textContent=`Error: ${err?.message||err}` }
