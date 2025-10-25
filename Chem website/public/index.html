@@ -108,174 +108,219 @@
     valence:{H:1,He:0,Li:1,Be:2,B:3,C:4,N:3,O:2,F:1,Ne:0,Na:1,Mg:2,Al:3,Si:4,P:3,S:2,Cl:1,Ar:0,K:1,Ca:2}
   };
   </script>
-  <script>
-(()=>{ // LocalChem (improved)
+<script>
+(()=>{ // LocalChem v2 — products, ΔH°rxn via ΔH°f, mechanisms
 
-  /* ---------- Helpers ---------- */
+  /* ========== Utilities ========== */
   function parseFormula(f){const s=[{}];const r=/([A-Z][a-z]?|\(|\)|\d+)/g;let m;
     while((m=r.exec(f))){const t=m[1];
       if(t==='('){s.push({});continue}
       if(t===')'){const top=s.pop();const mult=/^\d+/.exec(f.slice(r.lastIndex))?.[0];const k=mult?parseInt(mult,10):1;if(mult)r.lastIndex+=mult.length;for(const e in top)s[s.length-1][e]=(s[s.length-1][e]||0)+top[e]*k;continue}
       if(/^\d+$/.test(t))continue;const el=t;const mult=/^\d+/.exec(f.slice(r.lastIndex))?.[0];const k=mult?parseInt(mult,10):1;if(mult)r.lastIndex+=mult.length;s[s.length-1][el]=(s[s.length-1][el]||0)+k
     }return s[0]}
-
   function parseSide(side){return side.split('+').map(x=>{const t=x.trim();const m=/^\s*(\d+)\s+(.+)$/.exec(t);return m?{coef:parseInt(m[1],10),formula:m[2].trim()}:{coef:1,formula:t}})}
   function buildMatrix(lhs,rhs){const sp=[...lhs,...rhs],els=new Set();sp.forEach(p=>{p.comp=parseFormula(p.formula);Object.keys(p.comp).forEach(k=>els.add(k))});
     const e=[...els],C=sp.length,R=e.length,A=[...Array(R)].map(()=>Array(C).fill(0));
     e.forEach((el,i)=>{lhs.forEach((p,j)=>A[i][j]=p.comp[el]||0);rhs.forEach((p,j)=>A[i][j+lhs.length]=-(p.comp[el]||0))});
     return {A,lhs,rhs}}
-
-  /* ---------- Equation balancer + ΔH ---------- */
-  const BOND = {"H-H":436,"O=O":498,"C-H":413,"C-C":348,"C=C":614,"C≡C":839,"C=O":799,"O-H":463,"N≡N":945,"N-H":391,"C-O":358};
-
-  // quick library of common molecules → bond counts we can sum
-  const MOLECULE_BONDS = {
-    "H2": {"H-H":1},
-    "O2": {"O=O":1},
-    "N2": {"N≡N":1},
-    "H2O": {"O-H":2},
-    "CO2": {"C=O":2},
-    "CO": {"C=O":1},
-    "CH4": {"C-H":4},
-    "C2H6": {"C-C":1,"C-H":6},
-    "C2H4": {"C=C":1,"C-H":4},
-    "C2H2": {"C≡C":1,"C-H":2},
-    "NH3": {"N-H":3},
-    "CH3OH": {"C-O":1,"C-H":4,"O-H":1},
-    "C2H5OH": {"C-C":1,"C-H":6,"C-O":1,"O-H":1}
-  };
-
-  function bondsFor(formula){
-    const key=formula.replace(/\s+/g,'');
-    return MOLECULE_BONDS[key] || null;
-  }
-
-  function deltaH(reactantsArr, productsArr){
-    // Σ(bonds broken) − Σ(bonds formed)
-    let broken=0, formed=0;
-    for(const {coef,formula} of reactantsArr){
-      const b=bondsFor(formula); if(!b) return {deltaH:null, note:"ΔH not estimated for this set (unsupported molecules)."};
-      for(const k in b) broken += (BOND[k]||0) * b[k] * coef;
-    }
-    for(const {coef,formula} of productsArr){
-      const b=bondsFor(formula); if(!b) return {deltaH:null, note:"ΔH not estimated for this set (unsupported molecules)."};
-      for(const k in b) formed += (BOND[k]||0) * b[k] * coef;
-    }
-    return {deltaH: Math.round((broken-formed)*10)/10, note:"Estimated from average gas-phase bond energies (kJ/mol)."};
-  }
-
   function balanceEquation(input){
-    const [L,R]=input.split('->').map(s=>s.trim());
-    if(!L||!R) throw new Error("Use 'reactants -> products'");
-    const lhs=parseSide(L), rhs=parseSide(R);
-    const {A}=buildMatrix(lhs,rhs);
+    const [L,R]=input.split('->').map(s=>s.trim()); if(!L||!R) throw new Error("Use 'reactants -> products'");
+    const lhs=parseSide(L), rhs=parseSide(R), {A}=buildMatrix(lhs,rhs);
     const rows=A.length+1, cols=A[0].length, M=[...Array(rows)].map(()=>Array(cols).fill(0));
     for(let i=0;i<A.length;i++)for(let j=0;j<cols;j++)M[i][j]=A[i][j];
     M[rows-1][cols-1]=1; const b=Array(rows).fill(0); b[rows-1]=1;
     const aug=M.map((row,i)=>row.concat([b[i]]));
     const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a); const lcm=(a,b)=>Math.abs(a*b)/gcd(a,b);
-    for(let col=0,row=0; col<cols && row<rows; col++){
-      let piv=row; while(piv<rows && aug[piv][col]===0) piv++; if(piv===rows) continue;
+    for(let col=0,row=0;col<cols&&row<rows;col++){
+      let piv=row; while(piv<rows&&aug[piv][col]===0)piv++; if(piv===rows)continue;
       [aug[row],aug[piv]]=[aug[piv],aug[row]]; const pv=aug[row][col];
-      for(let c=col;c<=cols;c++) aug[row][c]/=pv;
-      for(let r=0;r<rows;r++){ if(r===row) continue; const f=aug[r][col]; if(f!==0) for(let c=col;c<=cols;c++) aug[r][c]-=f*aug[row][c]; }
+      for(let c=col;c<=cols;c++)aug[row][c]/=pv;
+      for(let r=0;r<rows;r++){ if(r===row)continue; const f=aug[r][col]; if(f!==0) for(let c=col;c<=cols;c++)aug[r][c]-=f*aug[row][c]; }
       row++;
     }
     const x=aug.slice(0,cols).map(r=>r[cols]||0);
-    const den=x.map(v=>{const s=v.toString(); return s.includes('.')?10**s.split('.')[1].length:1});
-    const LCM=den.reduce((p,c)=>lcm(p,c),1);
-    let nums=x.map(v=>Math.round(v*LCM));
+    const den=x.map(v=>{const s=v.toString();return s.includes('.')?10**s.split('.')[1].length:1});
+    const LCM=den.reduce((p,c)=>lcm(p,c),1); let nums=x.map(v=>Math.round(v*LCM));
     const G=nums.reduce((p,c)=>gcd(p,c),nums[0]||1); nums=nums.map(v=>Math.abs(v/G));
-
     const left=lhs.map((p,i)=>({coef:nums[i], formula:p.formula}));
     const right=rhs.map((p,i)=>({coef:nums[i+lhs.length], formula:p.formula}));
     const lstr=left.map(p=>`${p.coef===1?'':p.coef+' '}${p.formula}`).join(' + ');
     const rstr=right.map(p=>`${p.coef===1?'':p.coef+' '}${p.formula}`).join(' + ');
-
-    const dH=deltaH(left,right);
-    return {balanced:`${lstr} -> ${rstr}`, left, right, dH};
+    return {balanced:`${lstr} -> ${rstr}`, left, right};
   }
 
-  async function localSolveEquation(inp){
-    const s = inp.includes('->') ? inp : `${inp} -> H2O`;
-    const res = balanceEquation(s);
-    return {
-      balanced_equation: res.balanced,
-      products: res.right.map(p=>p.formula),
-      reaction_type: "balanced",
-      enthalpy_kJ_per_mol: res.dH.deltaH,
-      notes: res.dH.note || "Balanced locally (static mode).",
-      steps: [
-        "1) Build element matrix",
-        "2) Solve for smallest integer coefficients",
-        "3) Normalize to whole-number stoichiometry"
-      ]
-    };
+  /* ========== ΔH°f database (kJ/mol at 298 K) — extendable ========== */
+  const Hf = {
+    "H2(g)":0, "O2(g)":0, "N2(g)":0, "Cl2(g)":0, "HCl(aq)":-167.2,
+    "H2O(l)":-285.8, "H2O(g)":-241.8, "CO2(g)":-393.5, "CO(g)":-110.5,
+    "CH4(g)":-74.8, "C2H6(g)":-84.0, "C2H4(g)":52.3, "C2H2(g)":226.7,
+    "NaOH(aq)":-469.6, "NaCl(s)":-411.2, "NaCl(aq)":-407.3,
+    "CuSO4(aq)":-769.9, "ZnSO4(aq)":-980.0, "Cu(s)":0, "Zn(s)":0,
+    "CaCO3(s)":-1206.9, "CaO(s)":-635.1, "SO2(g)":-296.8, "SO3(g)":-395.7,
+    "NH3(g)":-46.1, "NO2(g)":33.2, "H2SO4(aq)":-909.3
+  };
+  function HfLookup(species){
+    // try exact, then assume (g), then (aq), then (s)
+    if(Hf[species]!==undefined) return Hf[species];
+    const base = species.replace(/\s+/g,'');
+    for(const phase of ["(g)","(aq)","(l)","(s)"]){
+      const k = `${base}${phase}`; if(Hf[k]!==undefined) return Hf[k];
+    }
+    return null;
+  }
+  function deltaH_from_Hf(left,right){
+    // ΔH°rxn = Σν Hf(products) − Σν Hf(reactants)
+    let prod=0, react=0;
+    for(const p of right){
+      const v=HfLookup(p.formula); if(v===null) return {dH:null, note:"ΔH°f unavailable for at least one product."};
+      prod += v * p.coef;
+    }
+    for(const r of left){
+      const v=HfLookup(r.formula); if(v===null) return {dH:null, note:"ΔH°f unavailable for at least one reactant."};
+      react += v * r.coef;
+    }
+    return {dH: Math.round((prod-react)*10)/10, note:"Calculated from tabulated ΔH°f (kJ/mol)."};
   }
 
-  /* ---------- Drawings with electrons (white) ---------- */
+  /* ========== Product prediction (simple but useful) ========== */
+  const METALS = new Set(["Li","Na","K","Rb","Cs","Mg","Ca","Sr","Ba","Al","Zn","Fe","Cu","Ag","Au","Ni","Co","Sn","Pb"]);
+  const COMMON_ANIONS = ["Cl","Br","I","NO3","SO4","CO3","OH","PO4","F","CN"];
+
+  function isO2(x){return x.replace(/\s+/g,'').toUpperCase()==="O2";}
+  function hydrocarbonLike(x){
+    const m=/^C(\d*)(H\d+)(O\d+)?$/i.exec(x.replace(/\s+/g,''));
+    if(!m) return null;
+    const C=parseInt(m[1]||"1",10), hasO=!!m[3];
+    return {C, hasO};
+  }
+  function isAcid(x){ return /^H[A-Z]/.test(x) && !/^H2O$/.test(x); }
+  function isHydroxide(x){ return /OH/.test(x) && !/^H2O$/.test(x); }
+  function isMetalElement(x){ return METALS.has(x.replace(/\s+/g,'')); }
+  function splitSalt(x){
+    // very naive: metal first token, remainder is anion (strip count)
+    const m=/^([A-Z][a-z]?)(.*)$/.exec(x.replace(/\s+/g,''));
+    if(!m) return null;
+    const cation=m[1], rest=m[2] || "";
+    const anion = COMMON_ANIONS.find(a=>rest.startsWith(a));
+    return anion ? {cation, anion} : null;
+  }
+
+  function predictProducts(reactants){
+    const R = reactants.map(s=>s.trim());
+    const hasO2 = R.some(isO2);
+    const hc = R.map(hydrocarbonLike).find(Boolean);
+
+    // Combustion: CxHy(Oz) + O2 -> CO2 + H2O
+    if(hasO2 && hc){
+      return {type:"combustion", products:["CO2(g)","H2O(l)"], mechanism:[
+        "O2 activation to reactive species (overall stoichiometric model)",
+        "C–H and C–C bonds break; O–H and C=O bonds form",
+        "Overall: hydrocarbon oxidized to CO2 and H2O"
+      ]};
+    }
+
+    // Acid–base neutralization: HA + MOH -> MA + H2O
+    if(R.some(isAcid) && R.some(isHydroxide)){
+      const acid = R.find(isAcid), base = R.find(isHydroxide);
+      const acidAnion = acid.replace(/^H/,''); // HA -> A-
+      const cat = splitSalt(base)?.cation || "Na";
+      return {type:"acid-base", products:[`${cat}${acidAnion}(aq)`,"H2O(l)"], mechanism:[
+        "Base dissociates: MOH → M⁺ + OH⁻",
+        "Acid donates proton: HA → H⁺ + A⁻",
+        "Neutralization: H⁺ + OH⁻ → H2O",
+        "Spectator: M⁺ + A⁻ → MA (aq)"
+      ]};
+    }
+
+    // Single replacement (metal + salt): M + M'X -> M' + MX   (no activity series checks)
+    const metal = R.find(isMetalElement);
+    const salt = R.find(x=>splitSalt(x));
+    if(metal && salt){
+      const s = splitSalt(salt);
+      return {type:"single replacement (redox)", products:[`${metal}${s.anion}(aq)`, `${s.cation}(s)`], mechanism:[
+        `${metal} → ${metal}ⁿ⁺ + n e⁻`,
+        `${s.cation}ᵐ⁺ + m e⁻ → ${s.cation}(s)`,
+        `Overall electron transfer displaces ${s.cation}`
+      ]};
+    }
+
+    // Double displacement (metathesis): AB + CD -> AD + CB
+    const salts = R.map(splitSalt);
+    if(salts.filter(Boolean).length===2){
+      const [s1,s2]=salts.filter(Boolean);
+      return {type:"double displacement", products:[`${s1.cation}${s2.anion}(aq)`, `${s2.cation}${s1.anion}(aq)`], mechanism:[
+        "Dissociation: AB → A⁺ + B⁻ ;  CD → C⁺ + D⁻",
+        "Ion exchange in solution: A⁺ + D⁻ and C⁺ + B⁻",
+        "If an insoluble pair forms, it precipitates"
+      ]};
+    }
+
+    // Simple synthesis: A + B -> AB  (very naive)
+    if(R.length===2 && R.every(x=>/^[A-Z][a-z]?$/.test(x))){
+      return {type:"synthesis", products:[`${R[0]}${R[1]}(s)`], mechanism:["Combination of elements to a binary compound"]};
+    }
+
+    // Decomposition: AB -> A + B  (only if arrow given with no products; we won't guess)
+    return {type:"unknown", products:[], mechanism:[]};
+  }
+
+  /* ========== Drawings (same as you have, white electrons) ========== */
   function shells(z){const s=[];let left=z;const cap=[2,8,8,18];for(let i=0;i<cap.length&&left>0;i++){const take=Math.min(cap[i],left);s.push(take);left-=take}return s}
   function bohrSVG(symbol,z){
     const sh=shells(z);
     const dots = sh.map((n,i)=>{
       const R=40+30*i;
       return Array.from({length:n}).map((_,k)=>{
-        const a=(k/n)*2*Math.PI;
-        const x=200+R*Math.cos(a), y=150+R*Math.sin(a);
-        return `<circle class="wfill" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3"/>`;
+        const a=(k/n)*2*Math.PI, x=200+R*Math.cos(a), y=150+R*Math.sin(a);
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#fff"/>`;
       }).join('');
     }).join('');
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-      <circle class="wfill" cx="200" cy="150" r="8"/>
-      ${sh.map((_,i)=>`<circle class="wstroke" cx="200" cy="150" r="${40+30*i}"/>`).join('')}
+      <circle cx="200" cy="150" r="8" fill="#fff"/>
+      ${sh.map((_,i)=>`<circle cx="200" cy="150" r="${40+30*i}" stroke="#fff" stroke-width="2" fill="none"/>`).join('')}
       ${dots}
-      <text x="200" y="290" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14" fill="#fff">${symbol}</text>
     </svg>`;
   }
   function lewisSVG(symbol,v){
     const pts = Array.from({length:v}).map((_,i)=>{
       const a=(i/v)*2*Math.PI, R=70, x=200+R*Math.cos(a), y=150+R*Math.sin(a);
-      return `<circle class="wfill" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5"/>`;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="#fff"/>`;
     }).join('');
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
       <text x="200" y="160" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="64" fill="#fff">${symbol}</text>
       ${pts}
     </svg>`;
   }
-
   async function localDrawElement(symbol){
     const Z=PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
     const sh=shells(Z); const v=PERIODIC.valence[symbol]??(sh.at(-1)||0);
-    const bohr = bohrSVG(symbol,Z);
-    const br = bohr; // simple BR = Bohr for now (nucleus already shown)
-    const lewis = lewisSVG(symbol,v);
-    return { valence_electrons:v, bohr, bohr_rutherford:br, lewis, notes:"Bohr models with electrons; first 20 elements best supported." };
+    return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohrSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
   }
 
-  /* ---------- VSEPR: electron geometry + molecular geometry + drawing ---------- */
+  /* ========== VSEPR sketch (white) ========== */
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
-  function vseprFromCount(bonds,lone){
-    const ed=bonds+lone, eg=EG[ed]||"unknown";
-    let mg=eg;
-    if(ed===3 && lone===1) mg="bent";
-    if(ed===4 && lone===1) mg="trigonal pyramidal";
-    if(ed===4 && lone===2) mg="bent";
-    if(ed===5 && lone===1) mg="seesaw";
-    if(ed===5 && lone===2) mg="T-shaped";
-    if(ed===5 && lone===3) mg="linear";
-    if(ed===6 && lone===1) mg="square pyramidal";
-    if(ed===6 && lone===2) mg="square planar";
-    return {electron_geometry:eg, molecular_geometry:mg, ed};
+  function guessCounts(formula){
+    const m=/^([A-Z][a-z]?)/.exec(formula.replace(/\s+/g,'')); const c=m?m[1]:"X";
+    const toks=(formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g)||[]);
+    const counts={}; toks.forEach(t=>{const e=/^[A-Z][a-z]?/.exec(t)[0]; const n=parseInt(t.slice(e.length)||"1",10); counts[e]=(counts[e]||0)+n;});
+    const bonds=Object.entries(counts).reduce((a,[el,n])=>el===c?a:a+n,0); const val=PERIODIC.valence[c]??4; const lone=Math.max(0,val-bonds);
+    return {bonds,lone};
   }
-
+  function classify(b,l){const ed=b+l, eg=EG[ed]||"unknown"; let mg=eg;
+    if(ed===3&&l===1)mg="bent";
+    if(ed===4&&l===1)mg="trigonal pyramidal";
+    if(ed===4&&l===2)mg="bent";
+    if(ed===5&&l===1)mg="seesaw";
+    if(ed===5&&l===2)mg="T-shaped";
+    if(ed===5&&l===3)mg="linear";
+    if(ed===6&&l===1)mg="square pyramidal";
+    if(ed===6&&l===2)mg="square planar";
+    return {eg,mg,ed};
+  }
   function drawVSEPR(mg){
-    // Simple 2D white sketch; central at (200,150)
-    const C="class='wstroke'", F="class='wfill'";
-    const center=`<circle ${F} cx="200" cy="150" r="6"/>`;
-    const lines=(pts)=>pts.map(([x,y])=>`<line ${C} x1="200" y1="150" x2="${x}" y2="${y}"/>`).join('');
-    const balls=(pts)=>pts.map(([x,y])=>`<circle ${F} cx="${x}" cy="${y}" r="6"/>`).join('');
-    let pts=[];
-    switch(mg){
+    const C="stroke='#fff' stroke-width='2' fill='none'", F="fill='#fff'";
+    const center=`<circle ${F} cx="200" cy="150" r="6"/>`; const L=(pts)=>pts.map(([x,y])=>`<line ${C} x1="200" y1="150" x2="${x}" y2="${y}"/>`).join(''); const B=(pts)=>pts.map(([x,y])=>`<circle ${F} cx="${x}" cy="${y}" r="6"/>`).join('');
+    let pts=[]; switch(mg){
       case "linear": pts=[[110,150],[290,150]]; break;
       case "trigonal planar": pts=[[200,70],[140,210],[260,210]]; break;
       case "bent": pts=[[150,200],[250,200]]; break;
@@ -288,39 +333,56 @@
       case "octahedral": pts=[[200,60],[200,240],[120,150],[280,150],[140,110],[260,190]]; break;
       default: pts=[[200,70],[140,210],[260,210]];
     }
-    return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${center}${lines(pts)}${balls(pts)}</svg>`;
+    return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${center}${L(pts)}${B(pts)}</svg>`;
   }
-
-  function estimateCounts(formula){
-    // crude: central = first element token
-    const m=/^([A-Z][a-z]?)/.exec(formula.replace(/\s+/g,'')); const central=m?m[1]:"X";
-    const tokens=(formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g)||[]);
-    const counts={}; tokens.forEach(tok=>{const el=/^[A-Z][a-z]?/.exec(tok)[0]; const n=parseInt(tok.slice(el.length)||"1",10); counts[el]=(counts[el]||0)+n;});
-    const bonds=Object.entries(counts).reduce((a,[el,n])=>el===central?a:a+n,0);
-    const val=PERIODIC.valence[central]??4; const lone=Math.max(0,val-bonds);
-    return {central, bonds, lone};
-  }
-
   async function localSolveVSEPR(input){
-    const f=input.replace(/granite/ig,'graphite'); // typo guard
-    const {bonds,lone}=estimateCounts(f);
-    const shape=vseprFromCount(bonds,lone);
-    const svg=drawVSEPR(shape.molecular_geometry);
+    const f=input.replace(/granite/ig,'graphite'); const {bonds,lone}=guessCounts(f); const s=classify(bonds,lone);
     return {
       system:"molecule",
       formula:f,
-      electron_geometry: shape.electron_geometry,
-      molecular_geometry: shape.molecular_geometry,
-      electron_domains: `${bonds+lone} (${bonds} bonding + ${lone} lone)`,
-      bond_angles_deg: shape.electron_geometry==="tetrahedral"?"~109.5°":shape.electron_geometry==="trigonal planar"?"~120°":shape.electron_geometry==="linear"?"180°":shape.electron_geometry==="octahedral"?"90°":"varies",
-      hybridization: shape.electron_geometry==="linear"?"sp":shape.electron_geometry==="trigonal planar"?"sp2":shape.electron_geometry==="tetrahedral"?"sp3":shape.electron_geometry==="trigonal bipyramidal"?"sp3d":shape.electron_geometry==="octahedral"?"sp3d2":"—",
-      svg
+      electron_geometry:s.eg,
+      molecular_geometry:s.mg,
+      electron_domains:`${s.ed} (${bonds} bonding + ${lone} lone)`,
+      bond_angles_deg:s.eg==="tetrahedral"?"~109.5°":s.eg==="trigonal planar"?"~120°":s.eg==="linear"?"180°":s.eg==="octahedral"?"90°":"varies",
+      hybridization:s.eg==="linear"?"sp":s.eg==="trigonal planar"?"sp2":s.eg==="tetrahedral"?"sp3":s.eg==="trigonal bipyramidal"?"sp3d":s.eg==="octahedral"?"sp3d2":"—",
+      svg:drawVSEPR(s.mg)
     };
   }
 
-  /* expose */
-  window.LocalChem={ localSolveEquation, localDrawElement, localSolveVSEPR };
+  /* ========== public API ========== */
+  async function localSolveEquation(userInput){
+    // If user typed products, just balance & compute ΔH° if possible
+    if(userInput.includes('->')){
+      const res = balanceEquation(userInput);
+      const dH = deltaH_from_Hf(res.left,res.right);
+      return {
+        balanced_equation: res.balanced,
+        products: res.right.map(p=>p.formula),
+        reaction_type: "user-specified",
+        enthalpy_kJ_per_mol: dH.dH,
+        notes: dH.note,
+        mechanism: []
+      };
+    }
+    // Otherwise: predict products, then balance
+    const reactants = userInput.split('+').map(s=>s.trim()).filter(Boolean);
+    const pred = predictProducts(reactants);
+    if(!pred.products.length){
+      return { error: "Couldn't predict products for that input. Add products (use 'A + B -> ...') or try a simpler pair (combustion, acid-base, single/double replacement)." };
+    }
+    const res = balanceEquation(`${reactants.join(' + ')} -> ${pred.products.join(' + ')}`);
+    const dH = deltaH_from_Hf(res.left,res.right);
+    return {
+      balanced_equation: res.balanced,
+      products: res.right.map(p=>p.formula),
+      reaction_type: pred.type,
+      enthalpy_kJ_per_mol: dH.dH,
+      notes: dH.note,
+      mechanism: pred.mechanism
+    };
+  }
 
+  window.LocalChem = { localSolveEquation, localDrawElement, localSolveVSEPR };
 })();
 </script>
 
@@ -414,4 +476,5 @@
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
