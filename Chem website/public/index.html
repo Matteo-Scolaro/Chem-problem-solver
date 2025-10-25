@@ -7,43 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    :root { --bg:#0b1020; --card:#111834; --text:#e9ecff; --muted:#aab0d6; --accent:#6ea8ff; --card2:#0d1333; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family:Inter,system-ui,Arial; background:linear-gradient(180deg,#0b1020,#0e1430); color:var(--text); }
-    .wrap{ max-width:1100px; margin:40px auto; padding:0 16px; }
-    .hero{ text-align:center; margin-bottom:24px; }
-    h1{ font-size:32px; margin:0 0 6px; }
-    p.lead{ color:var(--muted); margin:0 0 24px; }
-    .card{ background:var(--card); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
-    .grid{ display:grid; gap:12px; }
-    .solver-grid{ grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); margin-top:16px; }
-    .solver{ background:var(--card2); border:1px solid #243063; border-radius:14px; padding:16px; cursor:pointer; transition:transform .08s ease; }
-    .solver:hover{ transform:translateY(-2px); border-color:#3e58b3; }
-    .solver h3{ margin:0 0 8px; font-size:18px; }
-    .solver p{ margin:0; color:var(--muted); font-size:14px; }
-    .footer{ text-align:center; color:#93a1d8; font-size:12px; margin-top:28px; }
-
-    /* Periodic table */
-    .ptable{ display:grid; grid-template-columns:repeat(18, minmax(28px, 1fr)); gap:6px; }
-    .elem{ background:#0b1030; border:1px solid #243063; border-radius:10px; padding:6px; text-align:center; position:relative; }
-    .elem .num{ position:absolute; top:4px; left:6px; font-size:10px; color:#8fa0de; }
-    .elem .sym{ font-size:14px; font-weight:700; }
-    .elem .name{ font-size:10px; color:#8fa0de; }
-    .empty{ visibility:hidden; }
-
-    /* Views */
-    .view{ display:none; }
-    .view.active{ display:block; }
-
-    .form{ display:flex; gap:10px; }
-    input[type=text], select{ flex:1; background:#0b1030; color:var(--text); border:1px solid #243063; border-radius:12px; padding:12px; }
-    button{ background:var(--accent); color:#071122; border:0; padding:12px 16px; border-radius:12px; font-weight:600; cursor:pointer; }
-    button:disabled{ opacity:.6; cursor:not-allowed; }
-    .result{ margin-top:16px; background:#0b1030; padding:14px; border-radius:12px; border:1px solid #243063; white-space:pre-wrap; }
-    .back{ background:#233066; margin-bottom:12px; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .svgwrap{ margin-top:12px; background:#0b1030; border:1px solid #243063; border-radius:12px; padding:12px; }
-    .cols{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+<link rel="stylesheet" href="styles.css">
   </style>
   <script>
   const API_BASE = "https://chem-problem-solver.onrender.com";
@@ -368,6 +332,7 @@
   <script src="./app.js" defer></script>
 </body>
 </html>
+
 
 
 
