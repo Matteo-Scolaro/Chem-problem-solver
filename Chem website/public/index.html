@@ -5,344 +5,211 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ChemBot — Problem Solver</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-<link rel="stylesheet" href="styles.css">
-  </style>
-  <script>
-  const API_BASE = "https://chem-problem-solver.onrender.com";
-</script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="wrap">
-    <div class="hero">
-      <h1>🔬 ChemBot — Problem Solver</h1>
-      <p class="lead">A single-page toolkit for students: interactive periodic table and guided solvers. No chats, just answers.</p>
+  <header class="hero">
+    <div class="wrap">
+      <h1>ChemBot</h1>
+      <p class="lead">Fast, free, on-device chemistry tools — balanced equations, VSEPR shapes, and simple drawings. No AI key required.</p>
     </div>
+  </header>
 
-    <!-- HOME VIEW -->
-    <section id="home" class="view active">
-      <div class="card" style="margin-bottom:16px;">
-        <h2 style="margin:0 0 12px;">Periodic Table</h2>
-        <div id="ptable" class="ptable"></div>
-      </div>
+  <main class="wrap">
 
-      <div class="card">
-        <h2 style="margin:0 0 8px;">Problem Solvers</h2>
-        <div class="grid solver-grid">
-          <div class="solver" data-view="equation">
-            <h3>Equation Builder</h3>
-            <p>Enter reactants → products, balanced equation, type, and ΔH estimate.</p>
-          </div>
-          <div class="solver" data-view="vsepr">
-            <h3>Bond Shapes & VSEPR</h3>
-            <p>Enter a molecule or allotrope (e.g., NH3, C (graphite)) → shape, hybridization, SVG sketch.</p>
-          </div>
-          <div class="solver" data-view="drawings">
-            <h3>Structure Drawings</h3>
-            <p>Bohr, Bohr‑Rutherford, and Lewis dot diagrams — pick an element.</p>
-          </div>
-          <div class="solver" data-view="stoich">
-            <h3>Stoichiometry Solver</h3>
-            <p>Mass, moles, limiting reagent, percent yield. (Coming next)</p>
-          </div>
-          <div class="solver" data-view="solutions">
-            <h3>Solutions & Concentration</h3>
-            <p>Compute dilutions with <span class="mono">C₁V₁ = C₂V₂</span>.</p>
-          </div>
-          <div class="solver" data-view="advanced">
-            <h3>Advanced (University)</h3>
-            <p>Thermo, quantum, spectroscopy, equilibrium — structured solutions.</p>
-          </div>
+    <!-- Periodic Table -->
+    <section class="card">
+      <div class="section-head">
+        <h2>Periodic Table</h2>
+        <div class="legend">
+          <span class="chip alkali">Alkali</span>
+          <span class="chip alkaline">Alkaline Earth</span>
+          <span class="chip transition">Transition</span>
+          <span class="chip post">Post-Transition</span>
+          <span class="chip metalloid">Metalloid</span>
+          <span class="chip nonmetal">Nonmetal</span>
+          <span class="chip halogen">Halogen</span>
+          <span class="chip noble">Noble Gas</span>
+          <span class="chip lanth">Lanthanide</span>
+          <span class="chip act">Actinide</span>
         </div>
       </div>
+
+      <!-- Hover card -->
+      <div class="pt-info" id="pt-info" hidden>
+        <div class="pt-big" id="pt-big">
+          <div class="num" id="pt-num">—</div>
+          <div class="sym" id="pt-sym">—</div>
+          <div class="name" id="pt-name">Hover an element</div>
+        </div>
+        <div class="pt-props">
+          <div>Atomic Mass (u) — <b id="pt-mass">—</b></div>
+          <div>Symbol — <b id="pt-sym2">—</b></div>
+          <div>Chemical Group Block — <b id="pt-block">—</b></div>
+        </div>
+      </div>
+
+      <!-- Real 18×7 grid + f-block rows -->
+      <div id="ptable" class="ptable"></div>
+      <div class="fblock-note">* Lanthanides and Actinides shown below</div>
     </section>
 
-    <!-- EQUATION BUILDER VIEW -->
-    <section id="equation" class="view">
-      <button class="back" onclick="switchView('home')">← Back</button>
-      <div class="card">
-        <h2 style="margin:0 0 8px;">Equation Builder</h2>
-        <p class="lead">Type reactants (e.g., <span class="mono">Zn + CuSO4</span>). The AI will balance, classify, and estimate ΔH.</p>
+    <!-- Solvers -->
+    <section class="grid solver-grid">
+      <!-- Equation -->
+      <div class="card solver">
+        <h3>Equation Builder</h3>
+        <p class="muted">Enter reactants (with optional products). Examples: <code>Zn + CuSO4</code>, <code>H2 + O2 → H2O</code></p>
         <div class="form">
-          <input id="eq-react" type="text" placeholder="e.g., Zn + CuSO4" />
-          <button id="eq-run">Solve</button>
+          <input id="eq-react" type="text" placeholder="e.g., H2 + O2 -> H2O">
+          <button id="eq-run" class="primary">Balance</button>
         </div>
-        <div id="eq-out" class="result">Results will appear here.</div>
+        <pre id="eq-out" class="result"></pre>
       </div>
-    </section>
 
-    <!-- VSEPR VIEW -->
-    <section id="vsepr" class="view">
-      <button class="back" onclick="switchView('home')">← Back</button>
-      <div class="card">
-        <h2 style="margin:0 0 8px;">Bond Shapes & VSEPR</h2>
-        <p class="lead">Enter a molecule or carbon allotrope (e.g., <span class="mono">NH3</span>, <span class="mono">CO2</span>, <span class="mono">C (graphite)</span>).</p>
+      <!-- VSEPR -->
+      <div class="card solver">
+        <h3>VSEPR Shape</h3>
+        <p class="muted">Give a formula or keyword. Examples: <code>NH3</code>, <code>CO2</code>, <code>C (graphite)</code></p>
         <div class="form">
-          <input id="vs-input" type="text" placeholder="e.g., NH3" />
-          <button id="vs-run">Analyze</button>
+          <input id="vs-input" type="text" placeholder="e.g., NH3">
+          <button id="vs-run" class="primary">Analyze</button>
         </div>
-        <div id="vs-out" class="result">Shape, hybridization, and notes will appear here.</div>
         <div id="vs-svg" class="svgwrap"></div>
+        <pre id="vs-out" class="result"></pre>
       </div>
-    </section>
 
-    <!-- DRAWINGS VIEW -->
-    <section id="drawings" class="view">
-      <button class="back" onclick="switchView('home')">← Back</button>
-      <div class="card">
-        <h2 style="margin:0 0 8px;">Structure Drawings</h2>
+      <!-- Drawings -->
+      <div class="card solver">
+        <h3>Element Drawings</h3>
+        <p class="muted">Simple Bohr / Bohr-Rutherford / Lewis diagrams (first 20 elements supported for now).</p>
         <div class="form">
           <select id="draw-symbol"></select>
-          <button id="draw-run">Draw</button>
+          <button id="draw-run" class="primary">Draw</button>
         </div>
-        <div class="cols">
-          <div>
-            <h3>Bohr</h3>
-            <div id="svg-bohr" class="svgwrap"></div>
-          </div>
-          <div>
-            <h3>Bohr‑Rutherford</h3>
-            <div id="svg-br" class="svgwrap"></div>
-          </div>
-          <div>
-            <h3>Lewis Dot</h3>
-            <div id="svg-lewis" class="svgwrap"></div>
-          </div>
+        <div class="draw-grid">
+          <div><h4>Bohr</h4><div id="svg-bohr" class="svgwrap"></div></div>
+          <div><h4>Bohr-Rutherford</h4><div id="svg-br" class="svgwrap"></div></div>
+          <div><h4>Lewis</h4><div id="svg-lewis" class="svgwrap"></div></div>
         </div>
-        <div id="draw-notes" class="result"></div>
+        <p id="draw-notes" class="muted" style="margin-top:.6rem;"></p>
       </div>
     </section>
 
-    <!-- Placeholder VIEWS -->
-    <section id="stoich" class="view">
-      <button class="back" onclick="switchView('home')">← Back</button>
-      <div class="card"><h2>Stoichiometry Solver</h2><p>Coming next — tell me the fields you want (e.g., given mass, target product, etc.).</p></div>
-    </section>
+  </main>
 
-    <section id="solutions" class="view">
-      <button class="back" onclick="switchView('home')">← Back</button>
-      <div class="card"><h2>Solutions & Concentration</h2><p>Use the dilution identity <span class="mono">C₁V₁ = C₂V₂</span>. (We can add inputs and calculator next.)</p></div>
-    </section>
-
-    <section id="advanced" class="view">
-      <button class="back" onclick="switchView('home')">← Back</button>
-      <div class="card">
-        <h2>Advanced (University)</h2>
-        <p class="lead">Pick a topic and describe your problem.</p>
-        <div class="form">
-          <select id="adv-topic">
-            <option value="thermo">Thermodynamics</option>
-            <option value="equilibrium">Chemical Equilibrium</option>
-            <option value="spectroscopy">Spectroscopy</option>
-            <option value="quantum">Quantum / MO Theory</option>
-          </select>
-          <input id="adv-prompt" type="text" placeholder="e.g., Calculate ΔG for reaction at 298 K given ΔH and ΔS." />
-          <button id="adv-run">Solve</button>
-        </div>
-        <div id="adv-out" class="result">Outline, formulas, and result will appear here.</div>
-      </div>
-    </section>
-
-    <div class="footer">Built for learning. Answers only; no hazardous how‑to instructions.</div>
-  </div>
-
-  <!-- A) minimal data (ONE TIME) -->
+  <!-- ===== Local data & solvers (one time) ===== -->
   <script>
+  // element numbers + crude valence (first 20 for drawings)
   window.PERIODIC = {
-    Z: {H:1, He:2, Li:3, Be:4, B:5, C:6, N:7, O:8, F:9, Ne:10, Na:11, Mg:12, Al:13, Si:14, P:15, S:16, Cl:17, Ar:18, K:19, Ca:20},
-    valence: {H:1, He:0, Li:1, Be:2, B:3, C:4, N:3, O:2, F:1, Ne:0, Na:1, Mg:2, Al:3, Si:4, P:3, S:2, Cl:1, Ar:0, K:1, Ca:2}
+    Z:{H:1,He:2,Li:3,Be:4,B:5,C:6,N:7,O:8,F:9,Ne:10,Na:11,Mg:12,Al:13,Si:14,P:15,S:16,Cl:17,Ar:18,K:19,Ca:20},
+    valence:{H:1,He:0,Li:1,Be:2,B:3,C:4,N:3,O:2,F:1,Ne:0,Na:1,Mg:2,Al:3,Si:4,P:3,S:2,Cl:1,Ar:0,K:1,Ca:2}
   };
-  window.BOND_ENERGY = {"H-H":436,"O=O":498,"C-H":413,"C-C":348,"C=C":614,"C≡C":839,"C=O":799,"O-H":463,"N≡N":945,"N-H":391,"C-O":358};
   </script>
-
-  <!-- B) local solvers (ONE TIME) -->
   <script>
-  (()=>{
+  (()=>{ // LocalChem
     function parseFormula(f){const s=[{}];const r=/([A-Z][a-z]?|\(|\)|\d+)/g;let m;while((m=r.exec(f))){const t=m[1];if(t==='('){s.push({});continue}if(t===')'){const top=s.pop();const mult=/^\d+/.exec(f.slice(r.lastIndex))?.[0];const k=mult?parseInt(mult,10):1;if(mult)r.lastIndex+=mult.length;for(const e in top)s[s.length-1][e]=(s[s.length-1][e]||0)+top[e]*k;continue}if(/^\d+$/.test(t))continue;const el=t;const mult=/^\d+/.exec(f.slice(r.lastIndex))?.[0];const k=mult?parseInt(mult,10):1;if(mult)r.lastIndex+=mult.length;s[s.length-1][el]=(s[s.length-1][el]||0)+k}return s[0]}
     function parseSide(side){return side.split('+').map(x=>{const t=x.trim();const m=/^\s*(\d+)\s+(.+)$/.exec(t);return m?{coef:parseInt(m[1],10),formula:m[2].trim()}:{coef:1,formula:t}})}
-    function buildMatrix(lhs,rhs){const sp=[...lhs,...rhs],els=new Set();sp.forEach(p=>{p.comp=parseFormula(p.formula);Object.keys(p.comp).forEach(k=>els.add(k))});const e=[...els],C=sp.length,R=e.length,A=[...Array(R)].map(()=>Array(C).fill(0));e.forEach((el,i)=>{lhs.forEach((p,j)=>A[i][j]=p.comp[el]||0);rhs.forEach((p,j)=>A[i][j+lhs.length]=-(p.comp[el]||0))});return {A,sp}}
+    function buildMatrix(lhs,rhs){const sp=[...lhs,...rhs],els=new Set();sp.forEach(p=>{p.comp=parseFormula(p.formula);Object.keys(p.comp).forEach(k=>els.add(k))});const e=[...els],C=sp.length,R=e.length,A=[...Array(R)].map(()=>Array(C).fill(0));e.forEach((el,i)=>{lhs.forEach((p,j)=>A[i][j]=p.comp[el]||0);rhs.forEach((p,j)=>A[i][j+lhs.length]=-(p.comp[el]||0))});return {A}}
     function balanceEquation(input){const [L,R]=input.split('->').map(s=>s.trim());if(!L||!R)throw new Error("Use 'reactants -> products'");const lhs=parseSide(L),rhs=parseSide(R);const {A}=buildMatrix(lhs,rhs);const rows=A.length+1,cols=A[0].length,M=[...Array(rows)].map(()=>Array(cols).fill(0));for(let i=0;i<A.length;i++)for(let j=0;j<cols;j++)M[i][j]=A[i][j];M[rows-1][cols-1]=1;const b=Array(rows).fill(0);b[rows-1]=1;const aug=M.map((row,i)=>row.concat([b[i]]));const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);const lcm=(a,b)=>Math.abs(a*b)/gcd(a,b);for(let col=0,row=0;col<cols&&row<rows;col++){let piv=row;while(piv<rows&&aug[piv][col]===0)piv++;if(piv===rows)continue;[aug[row],aug[piv]]=[aug[piv],aug[row]];const pv=aug[row][col];for(let c=col;c<=cols;c++)aug[row][c]/=pv;for(let r=0;r<rows;r++){if(r===row)continue;const f=aug[r][col];if(f!==0)for(let c=col;c<=cols;c++)aug[r][c]-=f*aug[row][c]}row++}const x=aug.slice(0,cols).map(r=>r[cols]||0);const den=x.map(v=>{const s=v.toString();return s.includes('.')?10**s.split('.')[1].length:1});const LCM=den.reduce((p,c)=>lcm(p,c),1);let nums=x.map(v=>Math.round(v*LCM));const G=nums.reduce((p,c)=>gcd(p,c),nums[0]||1);nums=nums.map(v=>Math.abs(v/G));const l=nums.slice(0,lhs.length),rr=nums.slice(lhs.length);const left=lhs.map((p,i)=>`${l[i]===1?'':l[i]+' '}${p.formula}`).join(' + ');const right=rhs.map((p,i)=>`${rr[i]===1?'':rr[i]+' '}${p.formula}`).join(' + ');return {balanced:`${left} -> ${right}`, left:l, right:rr}}
-    async function localSolveEquation(reactants){
-      const s = reactants.includes('->') ? reactants : `${reactants} -> H2O`;
-      const {balanced} = balanceEquation(s);
-      return { balanced_equation: balanced,
-               products: balanced.split('->')[1].trim().split('+').map(x=>x.trim()),
-               reaction_type: "balanced",
-               enthalpy_kJ_per_mol: null,
-               notes: "Balanced locally (static mode). ΔH not estimated." };
-    }
+    async function localSolveEquation(inp){const s=inp.includes('->')?inp:`${inp} -> H2O`;const {balanced}=balanceEquation(s);return{balanced_equation:balanced,products:balanced.split('->')[1].trim().split('+').map(x=>x.trim()),reaction_type:"balanced",enthalpy_kJ_per_mol:null,notes:"Balanced locally (static mode)."}}
     function shells(z){const s=[];let left=z;const cap=[2,8,8,18];for(let i=0;i<cap.length&&left>0;i++){const take=Math.min(cap[i],left);s.push(take);left-=take}return s}
-    async function localDrawElement(symbol){
-      const Z=window.PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
-      const sh=shells(Z); const v=window.PERIODIC.valence[symbol]??(sh[sh.length-1]||0);
-      const bohr=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><circle cx="200" cy="150" r="10" fill="black"/>${
-        sh.map((n,i)=>`<circle cx="200" cy="150" r="${40+30*i}" fill="none" stroke="black"/>`).join("")
-      }<text x="200" y="290" text-anchor="middle" font-family="sans-serif" font-size="14">${symbol} — shells ${sh.join(", ")}</text></svg>`;
-      const lewis=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><text x="200" y="150" text-anchor="middle" font-family="sans-serif" font-size="64">${symbol}</text>${
-        Array.from({length:v}).map((_,i)=>{const a=(i/v)*2*Math.PI,R=70,x=200+R*Math.cos(a),y=150+R*Math.sin(a);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6"/>`;}).join("")
-      }<text x="200" y="290" text-anchor="middle" font-family="sans-serif" font-size="14">Valence electrons: ${v}</text></svg>`;
-      return {valence_electrons:v, bohr, bohr_rutherford:bohr, lewis, notes:"Simple model (first 20 elements)."};
-    }
-    function guessVSEPR(formula){const known={CO2:{shape:"linear",domains:"2 (2 bonding)",angles:"180°",hyb:"sp"},BF3:{shape:"trigonal planar",domains:"3",angles:"120°",hyb:"sp2"},SO2:{shape:"bent",domains:"3 (2+1)",angles:"~119°",hyb:"sp2"},CH4:{shape:"tetrahedral",domains:"4",angles:"109.5°",hyb:"sp3"},NH3:{shape:"trigonal pyramidal",domains:"4 (3+1)",angles:"~107°",hyb:"sp3"},H2O:{shape:"bent",domains:"4 (2+2)",angles:"~104.5°",hyb:"sp3"},"C(graphite)":{system:"network",shape:"planar layers",domains:"3 per C",angles:"120°",hyb:"sp2"},"C(diamond)":{system:"network",shape:"tetrahedral network",domains:"4 per C",angles:"109.5°",hyb:"sp3"}};const k=formula.replace(/\s+/g,'');const d=known[k]||known[k.toUpperCase()]||known[k.replace(/[()]/g,'')];if(d)return {system:d.system||"molecule", name:k, formula:k, shape:d.shape, electron_domains:d.domains, bond_angles_deg:d.angles, hybridization:d.hyb, svg:null};const m=/^([A-Z][a-z]?)/.exec(k);const c=m?m[1]:"X";const counts={};(k.match(/[A-Z][a-z]?\d*/g)||[]).forEach(tok=>{const el=/^[A-Z][a-z]?/.exec(tok)[0];const n=parseInt(tok.slice(el.length)||"1",10);counts[el]=(counts[el]||0)+n});const bonds=(Object.entries(counts).reduce((a,[el,n])=>el===c?a:a+n,0));const V=(window.PERIODIC.valence[c]??4);const lone=Math.max(0,V-bonds);const domains=bonds+(lone>0?1:0)+(lone>2?1:0);const map={2:"linear",3:lone?"bent":"trigonal planar",4:lone>=2?"bent":lone===1?"trigonal pyramidal":"tetrahedral"};const ang={linear:"180°","trigonal planar":"120°",tetrahedral:"109.5°","trigonal pyramidal":"~107°",bent:"~104–119°"};const hyb={linear:"sp","trigonal planar":"sp2",tetrahedral:"sp3","trigonal pyramidal":"sp3",bent:"sp2/sp3"};const shape=map[domains]||"unknown";return {system:"molecule", name:k, formula:k, shape, electron_domains:`${domains} (approx)`, bond_angles_deg:ang[shape]||"—", hybridization:hyb[shape]||"—", svg:null}}
-    async function localSolveVSEPR(input){const d=guessVSEPR(input.replace(/granite/ig,'graphite'));const svg=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><circle cx="200" cy="150" r="28" stroke="black" fill="none"/><text x="200" y="156" text-anchor="middle" font-family="sans-serif" font-size="18">${d.formula}</text></svg>`;return {...d, svg}}
-    window.LocalChem = { localSolveEquation, localDrawElement, localSolveVSEPR };
+    async function localDrawElement(symbol){const Z=PERIODIC.Z[symbol];if(!Z)return{error:"Unknown element"};const sh=shells(Z);const v=PERIODIC.valence[symbol]??(sh.at(-1)||0);const bohr=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><circle cx="200" cy="150" r="10" fill="black"/>${sh.map((n,i)=>`<circle cx="200" cy="150" r="${40+30*i}" fill="none" stroke="black"/>`).join("")}<text x="200" y="290" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14">${symbol} — shells ${sh.join(", ")}</text></svg>`;const lewis=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><text x="200" y="150" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="64">${symbol}</text>${Array.from({length:v}).map((_,i)=>{const a=(i/v)*2*Math.PI,R=70,x=200+R*Math.cos(a),y=150+R*Math.sin(a);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6"/>`;}).join("")}<text x="200" y="290" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="14">Valence electrons: ${v}</text></svg>`;return{valence_electrons:v,bohr,bohr_rutherford:bohr,lewis,notes:"Simple model (first 20 elements)."}}
+    function guessVSEPR(f){const known={CO2:{shape:"linear",domains:"2 (2 bonding)",angles:"180°",hyb:"sp"},BF3:{shape:"trigonal planar",domains:"3",angles:"120°",hyb:"sp2"},SO2:{shape:"bent",domains:"3 (2+1)",angles:"~119°",hyb:"sp2"},CH4:{shape:"tetrahedral",domains:"4",angles:"109.5°",hyb:"sp3"},NH3:{shape:"trigonal pyramidal",domains:"4 (3+1)",angles:"~107°",hyb:"sp3"},H2O:{shape:"bent",domains:"4 (2+2)",angles:"~104.5°",hyb:"sp3"},"C(graphite)":{system:"network",shape:"planar layers",domains:"3 per C",angles:"120°",hyb:"sp2"},"C(diamond)":{system:"network",shape:"tetrahedral network",domains:"4 per C",angles:"109.5°",hyb:"sp3"}};const k=f.replace(/\s+/g,'');const d=known[k]||known[k.toUpperCase()]||known[k.replace(/[()]/g,'')];if(d)return{system:d.system||"molecule",name:k,formula:k,shape:d.shape,electron_domains:d.domains,bond_angles_deg:d.angles,hybridization:d.hyb,svg:null};const m=/^([A-Z][a-z]?)/.exec(k);const c=m?m[1]:"X";const counts={};(k.match(/[A-Z][a-z]?\d*/g)||[]).forEach(tok=>{const el=/^[A-Z][a-z]?/.exec(tok)[0];const n=parseInt(tok.slice(el.length)||"1",10);counts[el]=(counts[el]||0)+n});const bonds=(Object.entries(counts).reduce((a,[el,n])=>el===c?a:a+n,0));const V=(PERIODIC.valence[c]??4);const lone=Math.max(0,V-bonds);const domains=bonds+(lone>0?1:0)+(lone>2?1:0);const map={2:"linear",3:lone?"bent":"trigonal planar",4:lone>=2?"bent":lone===1?"trigonal pyramidal":"tetrahedral"};const ang={linear:"180°","trigonal planar":"120°",tetrahedral:"109.5°","trigonal pyramidal":"~107°",bent:"~104–119°"};const hyb={linear:"sp","trigonal planar":"sp2",tetrahedral:"sp3","trigonal pyramidal":"sp3",bent:"sp2/sp3"};const shape=map[domains]||"unknown";return{system:"molecule",name:k,formula:k,shape,electron_domains:`${domains} (approx)`,bond_angles_deg:ang[shape]||"—",hybridization:hyb[shape]||"—",svg:null}}
+    async function localSolveVSEPR(inp){const d=guessVSEPR(inp.replace(/granite/ig,'graphite'));const svg=`<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg"><circle cx="200" cy="150" r="28" stroke="black" fill="none"/><text x="200" y="156" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="18">${d.formula}</text></svg>`;return {...d, svg}}
+    window.LocalChem={localSolveEquation,localDrawElement,localSolveVSEPR};
   })();
   </script>
 
-  <!-- C) your main app code file (listeners/UI). Keep this and remove any extra inline scripts. -->
+  <!-- Table renderer -->
   <script>
-/* ------- PERIODIC TABLE: render & colors ------- */
-/* Creates a small info card and renders a colored 18x7 grid + 2 f-block rows. */
+  (()=>{
+    const grid = document.getElementById('ptable');
+    if(!grid) return;
 
-(function(){
-  // attach a top info card next to #ptable
-  const host = document.getElementById('ptable');
-  if (!host) return;
-  const info = document.createElement('div');
-  info.id = 'pt-info';
-  info.style.cssText = "display:flex;gap:18px;align-items:center;background:#2a2340;color:#d2cfff;border-radius:12px;padding:12px 16px;margin:0 0 12px 0";
-  info.innerHTML = `
-    <div style="width:120px;height:96px;border-radius:10px;background:#4a423e;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;">
-      <div id="pt-num" style="position:absolute;left:8px;top:6px;font-size:12px;opacity:.9">—</div>
-      <div id="pt-sym" style="font-size:44px;font-weight:800;line-height:1">—</div>
-      <div id="pt-name" style="font-size:14px;margin-top:4px">Hover an element</div>
-    </div>
-    <div style="line-height:1.6">
-      <div>Atomic Mass, u — <b id="pt-mass">—</b></div>
-      <div>Symbol — <b id="pt-sym2">—</b></div>
-      <div>Chemical Group Block — <b id="pt-block">—</b></div>
-    </div>`;
-  host.parentNode.insertBefore(info, host);
+    // 18×7 main grid with explicit gaps, then row8/9 for f-block
+    grid.style.setProperty('--cols', 18);
 
-  // block -> css class (we’ll inject styles below)
-  const cls = (b)=>{
-    const k = b.toLowerCase();
-    if (k.includes('alkali') && !k.includes('earth')) return 'pt-alkali';
-    if (k.includes('alkaline') || k.includes('earth')) return 'pt-alkaline';
-    if (k.includes('transition')) return 'pt-transition';
-    if (k.includes('post')) return 'pt-post';
-    if (k.includes('metalloid')) return 'pt-metalloid';
-    if (k.includes('nonmetal')) return 'pt-nonmetal';
-    if (k.includes('halogen')) return 'pt-halogen';
-    if (k.includes('noble')) return 'pt-noble';
-    if (k.includes('lanthan')) return 'pt-lanth';
-    if (k.includes('actin')) return 'pt-act';
-    return '';
-  };
+    // dataset: [Z, sym, name, mass, col, row, block]
+    const main = [
+      [1,"H","Hydrogen",1.008,1,1,"Nonmetal"],
+      [2,"He","Helium",4.0026,18,1,"Noble Gas"],
+      [3,"Li","Lithium",6.94,1,2,"Alkali Metal"],[4,"Be","Beryllium",9.0122,2,2,"Alkaline Earth Metal"],
+      [5,"B","Boron",10.81,13,2,"Metalloid"],[6,"C","Carbon",12.011,14,2,"Nonmetal"],[7,"N","Nitrogen",14.007,15,2,"Nonmetal"],[8,"O","Oxygen",15.999,16,2,"Nonmetal"],[9,"F","Fluorine",18.998,17,2,"Halogen"],[10,"Ne","Neon",20.18,18,2,"Noble Gas"],
+      [11,"Na","Sodium",22.99,1,3,"Alkali Metal"],[12,"Mg","Magnesium",24.305,2,3,"Alkaline Earth Metal"],
+      [13,"Al","Aluminum",26.982,13,3,"Post-Transition Metal"],[14,"Si","Silicon",28.085,14,3,"Metalloid"],[15,"P","Phosphorus",30.974,15,3,"Nonmetal"],[16,"S","Sulfur",32.06,16,3,"Nonmetal"],[17,"Cl","Chlorine",35.45,17,3,"Halogen"],[18,"Ar","Argon",39.95,18,3,"Noble Gas"],
+      [19,"K","Potassium",39.098,1,4,"Alkali Metal"],[20,"Ca","Calcium",40.078,2,4,"Alkaline Earth Metal"],
+      [21,"Sc","Scandium",44.956,3,4,"Transition Metal"],[22,"Ti","Titanium",47.867,4,4,"Transition Metal"],[23,"V","Vanadium",50.942,5,4,"Transition Metal"],[24,"Cr","Chromium",51.996,6,4,"Transition Metal"],[25,"Mn","Manganese",54.938,7,4,"Transition Metal"],[26,"Fe","Iron",55.845,8,4,"Transition Metal"],[27,"Co","Cobalt",58.933,9,4,"Transition Metal"],[28,"Ni","Nickel",58.693,10,4,"Transition Metal"],[29,"Cu","Copper",63.546,11,4,"Transition Metal"],[30,"Zn","Zinc",65.38,12,4,"Transition Metal"],
+      [31,"Ga","Gallium",69.723,13,4,"Post-Transition Metal"],[32,"Ge","Germanium",72.63,14,4,"Metalloid"],[33,"As","Arsenic",74.922,15,4,"Metalloid"],[34,"Se","Selenium",78.971,16,4,"Nonmetal"],[35,"Br","Bromine",79.904,17,4,"Halogen"],[36,"Kr","Krypton",83.798,18,4,"Noble Gas"],
+      [37,"Rb","Rubidium",85.468,1,5,"Alkali Metal"],[38,"Sr","Strontium",87.62,2,5,"Alkaline Earth Metal"],
+      [39,"Y","Yttrium",88.906,3,5,"Transition Metal"],[40,"Zr","Zirconium",91.224,4,5,"Transition Metal"],[41,"Nb","Niobium",92.906,5,5,"Transition Metal"],[42,"Mo","Molybdenum",95.95,6,5,"Transition Metal"],[43,"Tc","Technetium",98,7,5,"Transition Metal"],[44,"Ru","Ruthenium",101.07,8,5,"Transition Metal"],[45,"Rh","Rhodium",102.906,9,5,"Transition Metal"],[46,"Pd","Palladium",106.42,10,5,"Transition Metal"],[47,"Ag","Silver",107.868,11,5,"Transition Metal"],[48,"Cd","Cadmium",112.414,12,5,"Transition Metal"],[49,"In","Indium",114.818,13,5,"Post-Transition Metal"],[50,"Sn","Tin",118.71,14,5,"Post-Transition Metal"],[51,"Sb","Antimony",121.76,15,5,"Metalloid"],[52,"Te","Tellurium",127.6,16,5,"Metalloid"],[53,"I","Iodine",126.904,17,5,"Halogen"],[54,"Xe","Xenon",131.293,18,5,"Noble Gas"],
+      [55,"Cs","Cesium",132.905,1,6,"Alkali Metal"],[56,"Ba","Barium",137.33,2,6,"Alkaline Earth Metal"],
+      [72,"Hf","Hafnium",178.49,4,6,"Transition Metal"],[73,"Ta","Tantalum",180.947,5,6,"Transition Metal"],[74,"W","Tungsten",183.84,6,6,"Transition Metal"],[75,"Re","Rhenium",186.207,7,6,"Transition Metal"],[76,"Os","Osmium",190.23,8,6,"Transition Metal"],[77,"Ir","Iridium",192.217,9,6,"Transition Metal"],[78,"Pt","Platinum",195.08,10,6,"Transition Metal"],[79,"Au","Gold",196.967,11,6,"Transition Metal"],[80,"Hg","Mercury",200.59,12,6,"Transition Metal"],[81,"Tl","Thallium",204.38,13,6,"Post-Transition Metal"],[82,"Pb","Lead",207.2,14,6,"Post-Transition Metal"],[83,"Bi","Bismuth",208.98,15,6,"Post-Transition Metal"],[84,"Po","Polonium",209,16,6,"Metalloid"],[85,"At","Astatine",210,17,6,"Halogen"],[86,"Rn","Radon",222,18,6,"Noble Gas"],
+      [87,"Fr","Francium",223,1,7,"Alkali Metal"],[88,"Ra","Radium",226,2,7,"Alkaline Earth Metal"],
+      [104,"Rf","Rutherfordium",267,4,7,"Transition Metal"],[105,"Db","Dubnium",268,5,7,"Transition Metal"],[106,"Sg","Seaborgium",269,6,7,"Transition Metal"],[107,"Bh","Bohrium",270,7,7,"Transition Metal"],[108,"Hs","Hassium",269,8,7,"Transition Metal"],[109,"Mt","Meitnerium",278,9,7,"Transition Metal"],[110,"Ds","Darmstadtium",281,10,7,"Transition Metal"],[111,"Rg","Roentgenium",282,11,7,"Transition Metal"],[112,"Cn","Copernicium",285,12,7,"Transition Metal"],[113,"Nh","Nihonium",286,13,7,"Post-Transition Metal"],[114,"Fl","Flerovium",289,14,7,"Post-Transition Metal"],[115,"Mc","Moscovium",290,15,7,"Post-Transition Metal"],[116,"Lv","Livermorium",293,16,7,"Post-Transition Metal"],[117,"Ts","Tennessine",294,17,7,"Halogen"],[118,"Og","Oganesson",295,18,7,"Noble Gas"]
+    ];
+    const lan = [[57,"La","Lanthanum"],[58,"Ce","Cerium"],[59,"Pr","Praseodymium"],[60,"Nd","Neodymium"],[61,"Pm","Promethium"],[62,"Sm","Samarium"],[63,"Eu","Europium"],[64,"Gd","Gadolinium"],[65,"Tb","Terbium"],[66,"Dy","Dysprosium"],[67,"Ho","Holmium"],[68,"Er","Erbium"],[69,"Tm","Thulium"],[70,"Yb","Ytterbium"],[71,"Lu","Lutetium"]];
+    const act = [[89,"Ac","Actinium"],[90,"Th","Thorium"],[91,"Pa","Protactinium"],[92,"U","Uranium"],[93,"Np","Neptunium"],[94,"Pu","Plutonium"],[95,"Am","Americium"],[96,"Cm","Curium"],[97,"Bk","Berkelium"],[98,"Cf","Californium"],[99,"Es","Einsteinium"],[100,"Fm","Fermium"],[101,"Md","Mendelevium"],[102,"No","Nobelium"],[103,"Lr","Lawrencium"]];
 
-  // Inject minimal tile color CSS to match the screenshot vibe
-  const style = document.createElement('style');
-  style.textContent = `
-    .elem{transition:transform .05s ease, box-shadow .2s ease;}
-    .elem:hover{transform:translateY(-1px); box-shadow:0 0 0 1px rgba(198,190,255,.25) inset}
-    .elem .mass{font-size:10px;color:#a7afc9}
-    .pt-alkali{ background:#5a1620 !important; }
-    .pt-alkaline{ background:#5a2a16 !important; }
-    .pt-transition{ background:#103a55 !important; }
-    .pt-post{ background:#164733 !important; }
-    .pt-metalloid{ background:#3b5222 !important; }
-    .pt-nonmetal{ background:#203a4e !important; }
-    .pt-halogen{ background:#284d1f !important; }
-    .pt-noble{ background:#5a3516 !important; }
-    .pt-lanth{ background:#0b525a !important; }
-    .pt-act{ background:#0b4752 !important; }
-  `;
-  document.head.appendChild(style);
+    const blockClass = b=>{
+      const k = b.toLowerCase();
+      if(k.includes('alkali') && !k.includes('earth')) return 'pt-alkali';
+      if(k.includes('alkaline')||k.includes('earth')) return 'pt-alkaline';
+      if(k.includes('transition')) return 'pt-transition';
+      if(k.includes('post')) return 'pt-post';
+      if(k.includes('metalloid')) return 'pt-metalloid';
+      if(k.includes('nonmetal')) return 'pt-nonmetal';
+      if(k.includes('halogen')) return 'pt-halogen';
+      if(k.includes('noble')) return 'pt-noble';
+      if(k.includes('lanthan')) return 'pt-lanth';
+      if(k.includes('actin')) return 'pt-act';
+      return '';
+    };
 
-  // === Compact dataset for all 118 ===
-  const D = [
-    [1,"H","Hydrogen",1.008,1,1,"Nonmetal"], [2,"He","Helium",4.0026,18,1,"Noble Gas"],
-    [3,"Li","Lithium",6.94,1,2,"Alkali Metal"], [4,"Be","Beryllium",9.0122,2,2,"Alkaline Earth Metal"],
-    [5,"B","Boron",10.81,13,2,"Metalloid"], [6,"C","Carbon",12.011,14,2,"Nonmetal"],
-    [7,"N","Nitrogen",14.007,15,2,"Nonmetal"], [8,"O","Oxygen",15.999,16,2,"Nonmetal"],
-    [9,"F","Fluorine",18.998,17,2,"Halogen"], [10,"Ne","Neon",20.18,18,2,"Noble Gas"],
-    [11,"Na","Sodium",22.99,1,3,"Alkali Metal"], [12,"Mg","Magnesium",24.305,2,3,"Alkaline Earth Metal"],
-    [13,"Al","Aluminum",26.982,13,3,"Post-Transition Metal"], [14,"Si","Silicon",28.085,14,3,"Metalloid"],
-    [15,"P","Phosphorus",30.974,15,3,"Nonmetal"], [16,"S","Sulfur",32.06,16,3,"Nonmetal"],
-    [17,"Cl","Chlorine",35.45,17,3,"Halogen"], [18,"Ar","Argon",39.95,18,3,"Noble Gas"],
-    [19,"K","Potassium",39.098,1,4,"Alkali Metal"], [20,"Ca","Calcium",40.078,2,4,"Alkaline Earth Metal"],
-    [21,"Sc","Scandium",44.956,3,4,"Transition Metal"], [22,"Ti","Titanium",47.867,4,4,"Transition Metal"],
-    [23,"V","Vanadium",50.942,5,4,"Transition Metal"], [24,"Cr","Chromium",51.996,6,4,"Transition Metal"],
-    [25,"Mn","Manganese",54.938,7,4,"Transition Metal"], [26,"Fe","Iron",55.845,8,4,"Transition Metal"],
-    [27,"Co","Cobalt",58.933,9,4,"Transition Metal"], [28,"Ni","Nickel",58.693,10,4,"Transition Metal"],
-    [29,"Cu","Copper",63.546,11,4,"Transition Metal"], [30,"Zn","Zinc",65.38,12,4,"Transition Metal"],
-    [31,"Ga","Gallium",69.723,13,4,"Post-Transition Metal"], [32,"Ge","Germanium",72.63,14,4,"Metalloid"],
-    [33,"As","Arsenic",74.922,15,4,"Metalloid"], [34,"Se","Selenium",78.971,16,4,"Nonmetal"],
-    [35,"Br","Bromine",79.904,17,4,"Halogen"], [36,"Kr","Krypton",83.798,18,4,"Noble Gas"]
-  ];
-  // Period 5
-  const P5=[[37,"Rb","Rubidium"],[38,"Sr","Strontium"],[39,"Y","Yttrium"],[40,"Zr","Zirconium"],[41,"Nb","Niobium"],[42,"Mo","Molybdenum"],[43,"Tc","Technetium"],[44,"Ru","Ruthenium"],[45,"Rh","Rhodium"],[46,"Pd","Palladium"],[47,"Ag","Silver"],[48,"Cd","Cadmium"],[49,"In","Indium"],[50,"Sn","Tin"],[51,"Sb","Antimony"],[52,"Te","Tellurium"],[53,"I","Iodine"],[54,"Xe","Xenon"]];
-  P5.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined, (i<2?i+1:i<12?i-9+3:i-9+13), 5, i<12?"Transition Metal":(i<14?"Post-Transition Metal":(i<16?"Metalloid":(i===16?"Halogen":"Noble Gas")))]));
-  // Period 6 (skip lanthanides in main row)
-  const P6=[[55,"Cs","Cesium"],[56,"Ba","Barium"],[72,"Hf","Hafnium"],[73,"Ta","Tantalum"],[74,"W","Tungsten"],[75,"Re","Rhenium"],[76,"Os","Osmium"],[77,"Ir","Iridium"],[78,"Pt","Platinum"],[79,"Au","Gold"],[80,"Hg","Mercury"],[81,"Tl","Thallium"],[82,"Pb","Lead"],[83,"Bi","Bismuth"],[84,"Po","Polonium"],[85,"At","Astatine"],[86,"Rn","Radon"]];
-  P6.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined, (i<2?i+1:i+4), 6, i<12?"Transition Metal":(i<15?"Post-Transition Metal":(i<16?"Metalloid":(i===16?"Halogen":"Noble Gas")))]));
-  // Period 7 (skip actinides in main row)
-  const P7=[[87,"Fr","Francium"],[88,"Ra","Radium"],[104,"Rf","Rutherfordium"],[105,"Db","Dubnium"],[106,"Sg","Seaborgium"],[107,"Bh","Bohrium"],[108,"Hs","Hassium"],[109,"Mt","Meitnerium"],[110,"Ds","Darmstadtium"],[111,"Rg","Roentgenium"],[112,"Cn","Copernicium"],[113,"Nh","Nihonium"],[114,"Fl","Flerovium"],[115,"Mc","Moscovium"],[116,"Lv","Livermorium"],[117,"Ts","Tennessine"],[118,"Og","Oganesson"]];
-  P7.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined, (i<2?i+1:i+4), 7, i<12?"Transition Metal":(i<15?"Post-Transition Metal":(i<16?"Halogen":"Noble Gas"))]));
+    // Render helper
+    const makeTile = (Z,sym,name,mass,col,row,block)=>{
+      const d = document.createElement('div');
+      d.className = `elem ${blockClass(block)}`;
+      d.style.gridColumn = col;
+      d.style.gridRow = row;
+      d.innerHTML = `
+        <div class="num">${Z}</div>
+        <div class="sym">${sym}</div>
+        <div class="name">${name}</div>
+        <div class="mass">${typeof mass==='number'?mass:''}</div>
+      `;
+      d.dataset.block=block; d.dataset.z=Z; d.dataset.sym=sym; d.dataset.name=name; d.dataset.mass = (mass??'—');
+      return d;
+    };
 
-  // Lanthanides (row 8 in our grid layout)
-  const LAN=[[57,"La","Lanthanum"],[58,"Ce","Cerium"],[59,"Pr","Praseodymium"],[60,"Nd","Neodymium"],[61,"Pm","Promethium"],[62,"Sm","Samarium"],[63,"Eu","Europium"],[64,"Gd","Gadolinium"],[65,"Tb","Terbium"],[66,"Dy","Dysprosium"],[67,"Ho","Holmium"],[68,"Er","Erbium"],[69,"Tm","Thulium"],[70,"Yb","Ytterbium"],[71,"Lu","Lutetium"]];
-  LAN.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined,3+i,8,"Lanthanide"]));
-  // Actinides (row 9)
-  const ACT=[[89,"Ac","Actinium"],[90,"Th","Thorium"],[91,"Pa","Protactinium"],[92,"U","Uranium"],[93,"Np","Neptunium"],[94,"Pu","Plutonium"],[95,"Am","Americium"],[96,"Cm","Curium"],[97,"Bk","Berkelium"],[98,"Cf","Californium"],[99,"Es","Einsteinium"],[100,"Fm","Fermium"],[101,"Md","Mendelevium"],[102,"No","Nobelium"],[103,"Lr","Lawrencium"]];
-  ACT.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined,3+i,9,"Actinide"]));
+    // Draw main
+    grid.innerHTML = '';
+    main.forEach(e=>grid.appendChild(makeTile(...e)));
 
-  // Render
-  host.innerHTML = '';
-  D.forEach(([Z,sym,name,mass,col,row,block])=>{
-    const tile = document.createElement('div');
-    tile.className = `elem ${cls(block)}`;
-    tile.style.gridColumn = col;
-    tile.style.gridRow = row;
-    tile.innerHTML = `
-      <div class="num">${Z}</div>
-      <div class="sym">${sym}</div>
-      <div class="name">${name}</div>
-      <div class="mass">${typeof mass==='number' ? mass : ''}</div>
-    `;
-    tile.dataset.block = block;
-    tile.dataset.z = Z;
-    tile.dataset.sym = sym;
-    tile.dataset.name = name;
-    tile.dataset.mass = mass || '—';
-    host.appendChild(tile);
-  });
+    // f-block rows 8 & 9
+    lan.forEach((x,i)=>grid.appendChild(makeTile(x[0],x[1],x[2],undefined,3+i,8,'Lanthanide')));
+    act.forEach((x,i)=>grid.appendChild(makeTile(x[0],x[1],x[2],undefined,3+i,9,'Actinide')));
 
-  const setInfo = (t)=>{
-    const c = getComputedStyle(t).backgroundColor;
-    info.querySelector('#pt-num').textContent = t.dataset.z;
-    info.querySelector('#pt-sym').textContent = t.dataset.sym;
-    info.querySelector('#pt-name').textContent = t.dataset.name;
-    info.querySelector('#pt-sym2').textContent = t.dataset.sym;
-    info.querySelector('#pt-mass').textContent = t.dataset.mass;
-    info.querySelector('#pt-block').textContent = t.dataset.block;
-    info.firstElementChild.style.background = c;
-  };
-  host.addEventListener('mouseover', e=>{
-    const t = e.target.closest('.elem'); if(!t) return;
-    setInfo(t);
-  });
-  host.addEventListener('click', e=>{
-    const t = e.target.closest('.elem'); if(!t) return;
-    setInfo(t);
-  });
-})();
-</script>
-  <script src="./app.js" defer></script>
+    // Hover card
+    const info = document.getElementById('pt-info');
+    const setInfo = (t)=>{
+      info.hidden = false;
+      info.querySelector('#pt-num').textContent = t.dataset.z;
+      info.querySelector('#pt-sym').textContent = t.dataset.sym;
+      info.querySelector('#pt-name').textContent = t.dataset.name;
+      info.querySelector('#pt-sym2').textContent = t.dataset.sym;
+      info.querySelector('#pt-mass').textContent = t.dataset.mass;
+      info.querySelector('#pt-block').textContent = t.dataset.block;
+      document.getElementById('pt-big').style.background = getComputedStyle(t).backgroundImage || getComputedStyle(t).backgroundColor;
+    };
+    grid.addEventListener('mouseover', e=>{ const t=e.target.closest('.elem'); if(t) setInfo(t); });
+    grid.addEventListener('click', e=>{ const t=e.target.closest('.elem'); if(t) setInfo(t); });
+  })();
+  </script>
+
+  <!-- UI logic -->
+  <script src="app.js" defer></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
