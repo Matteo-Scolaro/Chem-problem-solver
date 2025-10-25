@@ -227,9 +227,148 @@
   </script>
 
   <!-- C) your main app code file (listeners/UI). Keep this and remove any extra inline scripts. -->
+  <script>
+/* ------- PERIODIC TABLE: render & colors ------- */
+/* Creates a small info card and renders a colored 18x7 grid + 2 f-block rows. */
+
+(function(){
+  // attach a top info card next to #ptable
+  const host = document.getElementById('ptable');
+  if (!host) return;
+  const info = document.createElement('div');
+  info.id = 'pt-info';
+  info.style.cssText = "display:flex;gap:18px;align-items:center;background:#2a2340;color:#d2cfff;border-radius:12px;padding:12px 16px;margin:0 0 12px 0";
+  info.innerHTML = `
+    <div style="width:120px;height:96px;border-radius:10px;background:#4a423e;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;">
+      <div id="pt-num" style="position:absolute;left:8px;top:6px;font-size:12px;opacity:.9">—</div>
+      <div id="pt-sym" style="font-size:44px;font-weight:800;line-height:1">—</div>
+      <div id="pt-name" style="font-size:14px;margin-top:4px">Hover an element</div>
+    </div>
+    <div style="line-height:1.6">
+      <div>Atomic Mass, u — <b id="pt-mass">—</b></div>
+      <div>Symbol — <b id="pt-sym2">—</b></div>
+      <div>Chemical Group Block — <b id="pt-block">—</b></div>
+    </div>`;
+  host.parentNode.insertBefore(info, host);
+
+  // block -> css class (we’ll inject styles below)
+  const cls = (b)=>{
+    const k = b.toLowerCase();
+    if (k.includes('alkali') && !k.includes('earth')) return 'pt-alkali';
+    if (k.includes('alkaline') || k.includes('earth')) return 'pt-alkaline';
+    if (k.includes('transition')) return 'pt-transition';
+    if (k.includes('post')) return 'pt-post';
+    if (k.includes('metalloid')) return 'pt-metalloid';
+    if (k.includes('nonmetal')) return 'pt-nonmetal';
+    if (k.includes('halogen')) return 'pt-halogen';
+    if (k.includes('noble')) return 'pt-noble';
+    if (k.includes('lanthan')) return 'pt-lanth';
+    if (k.includes('actin')) return 'pt-act';
+    return '';
+  };
+
+  // Inject minimal tile color CSS to match the screenshot vibe
+  const style = document.createElement('style');
+  style.textContent = `
+    .elem{transition:transform .05s ease, box-shadow .2s ease;}
+    .elem:hover{transform:translateY(-1px); box-shadow:0 0 0 1px rgba(198,190,255,.25) inset}
+    .elem .mass{font-size:10px;color:#a7afc9}
+    .pt-alkali{ background:#5a1620 !important; }
+    .pt-alkaline{ background:#5a2a16 !important; }
+    .pt-transition{ background:#103a55 !important; }
+    .pt-post{ background:#164733 !important; }
+    .pt-metalloid{ background:#3b5222 !important; }
+    .pt-nonmetal{ background:#203a4e !important; }
+    .pt-halogen{ background:#284d1f !important; }
+    .pt-noble{ background:#5a3516 !important; }
+    .pt-lanth{ background:#0b525a !important; }
+    .pt-act{ background:#0b4752 !important; }
+  `;
+  document.head.appendChild(style);
+
+  // === Compact dataset for all 118 ===
+  const D = [
+    [1,"H","Hydrogen",1.008,1,1,"Nonmetal"], [2,"He","Helium",4.0026,18,1,"Noble Gas"],
+    [3,"Li","Lithium",6.94,1,2,"Alkali Metal"], [4,"Be","Beryllium",9.0122,2,2,"Alkaline Earth Metal"],
+    [5,"B","Boron",10.81,13,2,"Metalloid"], [6,"C","Carbon",12.011,14,2,"Nonmetal"],
+    [7,"N","Nitrogen",14.007,15,2,"Nonmetal"], [8,"O","Oxygen",15.999,16,2,"Nonmetal"],
+    [9,"F","Fluorine",18.998,17,2,"Halogen"], [10,"Ne","Neon",20.18,18,2,"Noble Gas"],
+    [11,"Na","Sodium",22.99,1,3,"Alkali Metal"], [12,"Mg","Magnesium",24.305,2,3,"Alkaline Earth Metal"],
+    [13,"Al","Aluminum",26.982,13,3,"Post-Transition Metal"], [14,"Si","Silicon",28.085,14,3,"Metalloid"],
+    [15,"P","Phosphorus",30.974,15,3,"Nonmetal"], [16,"S","Sulfur",32.06,16,3,"Nonmetal"],
+    [17,"Cl","Chlorine",35.45,17,3,"Halogen"], [18,"Ar","Argon",39.95,18,3,"Noble Gas"],
+    [19,"K","Potassium",39.098,1,4,"Alkali Metal"], [20,"Ca","Calcium",40.078,2,4,"Alkaline Earth Metal"],
+    [21,"Sc","Scandium",44.956,3,4,"Transition Metal"], [22,"Ti","Titanium",47.867,4,4,"Transition Metal"],
+    [23,"V","Vanadium",50.942,5,4,"Transition Metal"], [24,"Cr","Chromium",51.996,6,4,"Transition Metal"],
+    [25,"Mn","Manganese",54.938,7,4,"Transition Metal"], [26,"Fe","Iron",55.845,8,4,"Transition Metal"],
+    [27,"Co","Cobalt",58.933,9,4,"Transition Metal"], [28,"Ni","Nickel",58.693,10,4,"Transition Metal"],
+    [29,"Cu","Copper",63.546,11,4,"Transition Metal"], [30,"Zn","Zinc",65.38,12,4,"Transition Metal"],
+    [31,"Ga","Gallium",69.723,13,4,"Post-Transition Metal"], [32,"Ge","Germanium",72.63,14,4,"Metalloid"],
+    [33,"As","Arsenic",74.922,15,4,"Metalloid"], [34,"Se","Selenium",78.971,16,4,"Nonmetal"],
+    [35,"Br","Bromine",79.904,17,4,"Halogen"], [36,"Kr","Krypton",83.798,18,4,"Noble Gas"]
+  ];
+  // Period 5
+  const P5=[[37,"Rb","Rubidium"],[38,"Sr","Strontium"],[39,"Y","Yttrium"],[40,"Zr","Zirconium"],[41,"Nb","Niobium"],[42,"Mo","Molybdenum"],[43,"Tc","Technetium"],[44,"Ru","Ruthenium"],[45,"Rh","Rhodium"],[46,"Pd","Palladium"],[47,"Ag","Silver"],[48,"Cd","Cadmium"],[49,"In","Indium"],[50,"Sn","Tin"],[51,"Sb","Antimony"],[52,"Te","Tellurium"],[53,"I","Iodine"],[54,"Xe","Xenon"]];
+  P5.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined, (i<2?i+1:i<12?i-9+3:i-9+13), 5, i<12?"Transition Metal":(i<14?"Post-Transition Metal":(i<16?"Metalloid":(i===16?"Halogen":"Noble Gas")))]));
+  // Period 6 (skip lanthanides in main row)
+  const P6=[[55,"Cs","Cesium"],[56,"Ba","Barium"],[72,"Hf","Hafnium"],[73,"Ta","Tantalum"],[74,"W","Tungsten"],[75,"Re","Rhenium"],[76,"Os","Osmium"],[77,"Ir","Iridium"],[78,"Pt","Platinum"],[79,"Au","Gold"],[80,"Hg","Mercury"],[81,"Tl","Thallium"],[82,"Pb","Lead"],[83,"Bi","Bismuth"],[84,"Po","Polonium"],[85,"At","Astatine"],[86,"Rn","Radon"]];
+  P6.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined, (i<2?i+1:i+4), 6, i<12?"Transition Metal":(i<15?"Post-Transition Metal":(i<16?"Metalloid":(i===16?"Halogen":"Noble Gas")))]));
+  // Period 7 (skip actinides in main row)
+  const P7=[[87,"Fr","Francium"],[88,"Ra","Radium"],[104,"Rf","Rutherfordium"],[105,"Db","Dubnium"],[106,"Sg","Seaborgium"],[107,"Bh","Bohrium"],[108,"Hs","Hassium"],[109,"Mt","Meitnerium"],[110,"Ds","Darmstadtium"],[111,"Rg","Roentgenium"],[112,"Cn","Copernicium"],[113,"Nh","Nihonium"],[114,"Fl","Flerovium"],[115,"Mc","Moscovium"],[116,"Lv","Livermorium"],[117,"Ts","Tennessine"],[118,"Og","Oganesson"]];
+  P7.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined, (i<2?i+1:i+4), 7, i<12?"Transition Metal":(i<15?"Post-Transition Metal":(i<16?"Halogen":"Noble Gas"))]));
+
+  // Lanthanides (row 8 in our grid layout)
+  const LAN=[[57,"La","Lanthanum"],[58,"Ce","Cerium"],[59,"Pr","Praseodymium"],[60,"Nd","Neodymium"],[61,"Pm","Promethium"],[62,"Sm","Samarium"],[63,"Eu","Europium"],[64,"Gd","Gadolinium"],[65,"Tb","Terbium"],[66,"Dy","Dysprosium"],[67,"Ho","Holmium"],[68,"Er","Erbium"],[69,"Tm","Thulium"],[70,"Yb","Ytterbium"],[71,"Lu","Lutetium"]];
+  LAN.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined,3+i,8,"Lanthanide"]));
+  // Actinides (row 9)
+  const ACT=[[89,"Ac","Actinium"],[90,"Th","Thorium"],[91,"Pa","Protactinium"],[92,"U","Uranium"],[93,"Np","Neptunium"],[94,"Pu","Plutonium"],[95,"Am","Americium"],[96,"Cm","Curium"],[97,"Bk","Berkelium"],[98,"Cf","Californium"],[99,"Es","Einsteinium"],[100,"Fm","Fermium"],[101,"Md","Mendelevium"],[102,"No","Nobelium"],[103,"Lr","Lawrencium"]];
+  ACT.forEach((x,i)=>D.push([x[0],x[1],x[2],undefined,3+i,9,"Actinide"]));
+
+  // Render
+  host.innerHTML = '';
+  D.forEach(([Z,sym,name,mass,col,row,block])=>{
+    const tile = document.createElement('div');
+    tile.className = `elem ${cls(block)}`;
+    tile.style.gridColumn = col;
+    tile.style.gridRow = row;
+    tile.innerHTML = `
+      <div class="num">${Z}</div>
+      <div class="sym">${sym}</div>
+      <div class="name">${name}</div>
+      <div class="mass">${typeof mass==='number' ? mass : ''}</div>
+    `;
+    tile.dataset.block = block;
+    tile.dataset.z = Z;
+    tile.dataset.sym = sym;
+    tile.dataset.name = name;
+    tile.dataset.mass = mass || '—';
+    host.appendChild(tile);
+  });
+
+  const setInfo = (t)=>{
+    const c = getComputedStyle(t).backgroundColor;
+    info.querySelector('#pt-num').textContent = t.dataset.z;
+    info.querySelector('#pt-sym').textContent = t.dataset.sym;
+    info.querySelector('#pt-name').textContent = t.dataset.name;
+    info.querySelector('#pt-sym2').textContent = t.dataset.sym;
+    info.querySelector('#pt-mass').textContent = t.dataset.mass;
+    info.querySelector('#pt-block').textContent = t.dataset.block;
+    info.firstElementChild.style.background = c;
+  };
+  host.addEventListener('mouseover', e=>{
+    const t = e.target.closest('.elem'); if(!t) return;
+    setInfo(t);
+  });
+  host.addEventListener('click', e=>{
+    const t = e.target.closest('.elem'); if(!t) return;
+    setInfo(t);
+  });
+})();
+</script>
   <script src="./app.js" defer></script>
 </body>
 </html>
+
 
 
 
