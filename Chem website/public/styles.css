@@ -1,0 +1,67 @@
+/* styles.css — dark, clean look */
+
+:root{
+  --bg:#0a0e1a; --bg2:#0d1224;
+  --card:#141a33; --card2:#1a2040;
+  --ink:#e9ecff; --muted:#a5aed6; --edge:#2b3b78;
+  --xray:#6ea8ff;
+
+  /* group colors */
+  --alkali:#b5383f;
+  --alkaline:#c26e2b;
+  --transition:#1d5c8b;
+  --post:#2e7c58;
+  --metalloid:#4f7b2e;
+  --nonmetal:#2b5b82;
+  --halogen:#3b7a2c;
+  --noble:#98642c;
+  --lanth:#1c7a83;
+  --act:#196b78;
+}
+
+/* base */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--ink)}
+.wrap{max-width:1180px;margin:36px auto;padding:0 16px}
+
+/* cards + headers */
+.card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+h1{margin:0 0 6px;font-size:32px}
+.lead{color:var(--muted)}
+
+/* solver cards */
+.grid{display:grid;gap:12px}
+.solver-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:16px}
+.solver{background:var(--card2);border:1px solid var(--edge);border-radius:14px;padding:16px;cursor:pointer;transition:transform .08s ease, border-color .2s ease}
+.solver:hover{transform:translateY(-2px);border-color:#3e58b3}
+
+/* form + outputs */
+.form{display:flex;gap:10px}
+input[type=text], select{flex:1;background:var(--bg);color:var(--ink);border:1px solid var(--edge);border-radius:12px;padding:12px}
+button{background:var(--xray);color:#08122a;border:0;padding:12px 16px;border-radius:12px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+.result{margin-top:16px;background:var(--bg);padding:14px;border-radius:12px;border:1px solid var(--edge);white-space:pre-wrap}
+.back{background:#233066;margin-bottom:12px}
+
+/* periodic table layout */
+.ptable{display:grid;grid-template-columns:repeat(18,minmax(38px,1fr));gap:6px}
+.elem{position:relative;background:var(--card2);border:1px solid var(--edge);border-radius:12px;padding:8px;text-align:center;min-height:74px;transition:transform .05s ease, box-shadow .2s ease}
+.elem:hover{transform:translateY(-1px);box-shadow:0 0 0 1px rgba(198,190,255,.25) inset}
+.elem .num{position:absolute;top:6px;left:8px;font-size:10px;color:var(--muted)}
+.elem .sym{font-size:18px;font-weight:800;line-height:1;margin:10px 0 4px}
+.elem .name{font-size:10px;color:#cfd3e6}
+.elem .mass{font-size:10px;color:#a7afc9}
+.empty{visibility:hidden}
+
+/* color classes */
+.pt-alkali{background:linear-gradient(180deg,#5a1c24,var(--alkali))}
+.pt-alkaline{background:linear-gradient(180deg,#5a351a,var(--alkaline))}
+.pt-transition{background:linear-gradient(180deg,#0f3a5a,var(--transition))}
+.pt-post{background:linear-gradient(180deg,#164a36,var(--post))}
+.pt-metalloid{background:linear-gradient(180deg,#344c1e,var(--metalloid))}
+.pt-nonmetal{background:linear-gradient(180deg,#1b3d59,var(--nonmetal))}
+.pt-halogen{background:linear-gradient(180deg,#22471b,var(--halogen))}
+.pt-noble{background:linear-gradient(180deg,#53361b,var(--noble))}
+.pt-lanth{background:linear-gradient(180deg,#0b5660,var(--lanth))}
+.pt-act{background:linear-gradient(180deg,#0b4c58,var(--act))}
