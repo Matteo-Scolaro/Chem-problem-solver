@@ -101,13 +101,13 @@
   </main>
 
   <!-- ===== Local data & solvers (one time) ===== -->
-  <script>
-  // element numbers + crude valence (first 20 for drawings)
+<script>
+  // Atomic number + VALENCE ELECTRONS (VE) for first 20
   window.PERIODIC = {
     Z:{H:1,He:2,Li:3,Be:4,B:5,C:6,N:7,O:8,F:9,Ne:10,Na:11,Mg:12,Al:13,Si:14,P:15,S:16,Cl:17,Ar:18,K:19,Ca:20},
-    valence:{H:1,He:0,Li:1,Be:2,B:3,C:4,N:3,O:2,F:1,Ne:0,Na:1,Mg:2,Al:3,Si:4,P:3,S:2,Cl:1,Ar:0,K:1,Ca:2}
+    VE:{H:1,He:2,Li:1,Be:2,B:3,C:4,N:5,O:6,F:7,Ne:8,Na:1,Mg:2,Al:3,Si:4,P:5,S:6,Cl:7,Ar:8,K:1,Ca:2}
   };
-  </script>
+</script>
 <script>
 (()=>{ // LocalChem v2 — products, ΔH°rxn via ΔH°f, mechanisms
 
@@ -205,64 +205,76 @@
     return anion ? {cation, anion} : null;
   }
 
-  function predictProducts(reactants){
-    const R = reactants.map(s=>s.trim());
-    const hasO2 = R.some(isO2);
-    const hc = R.map(hydrocarbonLike).find(Boolean);
+function predictProducts(reactants){
+  const R = reactants.map(s=>s.trim());
 
-    // Combustion: CxHy(Oz) + O2 -> CO2 + H2O
-    if(hasO2 && hc){
-      return {type:"combustion", products:["CO2(g)","H2O(l)"], mechanism:[
-        "O2 activation to reactive species (overall stoichiometric model)",
-        "C–H and C–C bonds break; O–H and C=O bonds form",
-        "Overall: hydrocarbon oxidized to CO2 and H2O"
-      ]};
-    }
-
-    // Acid–base neutralization: HA + MOH -> MA + H2O
-    if(R.some(isAcid) && R.some(isHydroxide)){
-      const acid = R.find(isAcid), base = R.find(isHydroxide);
-      const acidAnion = acid.replace(/^H/,''); // HA -> A-
-      const cat = splitSalt(base)?.cation || "Na";
-      return {type:"acid-base", products:[`${cat}${acidAnion}(aq)`,"H2O(l)"], mechanism:[
-        "Base dissociates: MOH → M⁺ + OH⁻",
-        "Acid donates proton: HA → H⁺ + A⁻",
-        "Neutralization: H⁺ + OH⁻ → H2O",
-        "Spectator: M⁺ + A⁻ → MA (aq)"
-      ]};
-    }
-
-    // Single replacement (metal + salt): M + M'X -> M' + MX   (no activity series checks)
-    const metal = R.find(isMetalElement);
-    const salt = R.find(x=>splitSalt(x));
-    if(metal && salt){
-      const s = splitSalt(salt);
-      return {type:"single replacement (redox)", products:[`${metal}${s.anion}(aq)`, `${s.cation}(s)`], mechanism:[
-        `${metal} → ${metal}ⁿ⁺ + n e⁻`,
-        `${s.cation}ᵐ⁺ + m e⁻ → ${s.cation}(s)`,
-        `Overall electron transfer displaces ${s.cation}`
-      ]};
-    }
-
-    // Double displacement (metathesis): AB + CD -> AD + CB
-    const salts = R.map(splitSalt);
-    if(salts.filter(Boolean).length===2){
-      const [s1,s2]=salts.filter(Boolean);
-      return {type:"double displacement", products:[`${s1.cation}${s2.anion}(aq)`, `${s2.cation}${s1.anion}(aq)`], mechanism:[
-        "Dissociation: AB → A⁺ + B⁻ ;  CD → C⁺ + D⁻",
-        "Ion exchange in solution: A⁺ + D⁻ and C⁺ + B⁻",
-        "If an insoluble pair forms, it precipitates"
-      ]};
-    }
-
-    // Simple synthesis: A + B -> AB  (very naive)
-    if(R.length===2 && R.every(x=>/^[A-Z][a-z]?$/.test(x))){
-      return {type:"synthesis", products:[`${R[0]}${R[1]}(s)`], mechanism:["Combination of elements to a binary compound"]};
-    }
-
-    // Decomposition: AB -> A + B  (only if arrow given with no products; we won't guess)
-    return {type:"unknown", products:[], mechanism:[]};
+  // 0) Special: water formation
+  if(R.includes("H2") && R.includes("O2")){
+    return {type:"synthesis (oxidation)", products:["H2O(l)"], mechanism:[
+      "Initiation of O2 to reactive species (overall model)",
+      "H–H broken, O–H formed",
+      "Overall: 2 H2 + O2 → 2 H2O"
+    ]};
   }
+
+  // 1) Combustion of hydrocarbons/alcohols: → CO2 + H2O
+  const hasO2 = R.some(x=>x.replace(/\s+/g,'').toUpperCase()==="O2");
+  const hc = R.find(x=>/^C\d*H\d+([O]\d+)?$/i.test(x.replace(/\s+/g,'')));
+  if(hasO2 && hc){
+    return {type:"combustion", products:["CO2(g)","H2O(l)"], mechanism:[
+      "Oxidation of C/H framework",
+      "C=O and O–H bond formation dominates enthalpy"
+    ]};
+  }
+
+  // 2) Simple element oxidation: C + O2 → CO2 ; S + O2 → SO2
+  if(hasO2 && R.includes("C"))  return {type:"oxidation", products:["CO2(g)"], mechanism:["Carbon oxidized to CO2"]};
+  if(hasO2 && R.includes("S"))  return {type:"oxidation", products:["SO2(g)"], mechanism:["Sulfur oxidized to SO2"]};
+
+  // 3) Acid–base: HA + MOH → MA + H2O
+  const isAcid = x => /^H[A-Z]/.test(x) && !/^H2O$/.test(x);
+  const isBase = x => /(OH)/.test(x) && !/^H2O$/.test(x);
+  if(R.some(isAcid) && R.some(isBase)){
+    const acid = R.find(isAcid), base = R.find(isBase);
+    const acidAnion = acid.replace(/^H/,'');
+    const baseCat = (/^([A-Z][a-z]?)/.exec(base)||[])[1] || "Na";
+    return {type:"acid-base", products:[`${baseCat}${acidAnion}(aq)`,"H2O(l)"], mechanism:[
+      "HA → H⁺ + A⁻", "MOH → M⁺ + OH⁻", "H⁺ + OH⁻ → H2O", "M⁺ + A⁻ → MA"
+    ]};
+  }
+
+  // 4) Single replacement: M + M'X → M' + MX
+  const METALS = new Set(["Li","Na","K","Rb","Cs","Mg","Ca","Sr","Ba","Al","Zn","Fe","Cu","Ag","Ni","Co","Sn","Pb"]);
+  const isMetal = x => METALS.has(x);
+  const splitSalt = x => {
+    const t=x.replace(/\s+/g,''); const m=/^([A-Z][a-z]?)(.*)$/.exec(t); if(!m) return null;
+    const c=m[1], rest=m[2]||""; const AN=["Cl","Br","I","NO3","SO4","CO3","OH","PO4","F","CN"];
+    const a = AN.find(a=>rest.startsWith(a)); return a?{cation:c, anion:a}:null;
+  };
+  const metal = R.find(isMetal), salt = R.map(splitSalt).find(Boolean);
+  if(metal && salt){
+    return {type:"single replacement (redox)", products:[`${metal}${salt.anion}(aq)`, `${salt.cation}(s)`], mechanism:[
+      `${metal} → ${metal}ⁿ⁺ + n e⁻`,
+      `${salt.cation}ᵐ⁺ + m e⁻ → ${salt.cation}(s)`
+    ]};
+  }
+
+  // 5) Double displacement: AB + CD → AD + CB
+  const salts = R.map(splitSalt).filter(Boolean);
+  if(salts.length===2){
+    const [s1,s2]=salts;
+    return {type:"double displacement", products:[`${s1.cation}${s2.anion}(aq)`, `${s2.cation}${s1.anion}(aq)`], mechanism:[
+      "Dissociation in water", "Ion exchange", "Check precipitation/neutralization"
+    ]};
+  }
+
+  // 6) Very simple synthesis: A + B → AB (elements)
+  if(R.length===2 && R.every(x=>/^[A-Z][a-z]?$/.test(x))){
+    return {type:"synthesis", products:[`${R[0]}${R[1]}(s)`], mechanism:["Combination of elements"]};
+  }
+
+  return {type:"unknown", products:[], mechanism:[]};
+}
 
   /* ========== Drawings (same as you have, white electrons) ========== */
   function shells(z){const s=[];let left=z;const cap=[2,8,8,18];for(let i=0;i<cap.length&&left>0;i++){const take=Math.min(cap[i],left);s.push(take);left-=take}return s}
@@ -297,30 +309,52 @@
     return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohrSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
   }
 
-  /* ========== VSEPR sketch (white) ========== */
+  /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
-  function guessCounts(formula){
-    const m=/^([A-Z][a-z]?)/.exec(formula.replace(/\s+/g,'')); const c=m?m[1]:"X";
-    const toks=(formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g)||[]);
-    const counts={}; toks.forEach(t=>{const e=/^[A-Z][a-z]?/.exec(t)[0]; const n=parseInt(t.slice(e.length)||"1",10); counts[e]=(counts[e]||0)+n;});
-    const bonds=Object.entries(counts).reduce((a,[el,n])=>el===c?a:a+n,0); const val=PERIODIC.valence[c]??4; const lone=Math.max(0,val-bonds);
-    return {bonds,lone};
+
+  function countBonds(formula){
+    // crude: number of atoms attached to the first element token
+    const core = (formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g)||[]);
+    if(core.length===0) return {central:"X", bonds:0};
+    const firstEl = /^[A-Z][a-z]?/.exec(core[0])[0];
+    const counts={};
+    core.forEach(tok=>{
+      const el=/^[A-Z][a-z]?/.exec(tok)[0];
+      const n=parseInt(tok.slice(el.length)||"1",10);
+      counts[el]=(counts[el]||0)+n;
+    });
+    const bonds = Object.entries(counts).reduce((a,[el,n])=> el===firstEl ? a : a+n ,0);
+    return {central:firstEl, bonds};
   }
-  function classify(b,l){const ed=b+l, eg=EG[ed]||"unknown"; let mg=eg;
-    if(ed===3&&l===1)mg="bent";
-    if(ed===4&&l===1)mg="trigonal pyramidal";
-    if(ed===4&&l===2)mg="bent";
-    if(ed===5&&l===1)mg="seesaw";
-    if(ed===5&&l===2)mg="T-shaped";
-    if(ed===5&&l===3)mg="linear";
-    if(ed===6&&l===1)mg="square pyramidal";
-    if(ed===6&&l===2)mg="square planar";
-    return {eg,mg,ed};
+
+  function lonePairs(central, bonds){
+    const VE = (window.PERIODIC.VE?.[central] ?? 4);           // valence electrons of central atom
+    const lp = Math.max(0, Math.floor((VE - bonds)/2));        // lone pairs (integer)
+    return lp;
   }
+
+  function classifyGeometry(bonds, lp){
+    const ed = bonds + lp;                    // electron domains
+    const eg = EG[ed] || "unknown";          // electron geometry
+    let mg = eg;                              // molecular geometry (default = eg)
+    if(ed===3 && lp===1) mg="bent";
+    if(ed===4 && lp===1) mg="trigonal pyramidal";
+    if(ed===4 && lp===2) mg="bent";
+    if(ed===5 && lp===1) mg="seesaw";
+    if(ed===5 && lp===2) mg="T-shaped";
+    if(ed===5 && lp===3) mg="linear";
+    if(ed===6 && lp===1) mg="square pyramidal";
+    if(ed===6 && lp===2) mg="square planar";
+    return {eg, mg, ed};
+  }
+
   function drawVSEPR(mg){
     const C="stroke='#fff' stroke-width='2' fill='none'", F="fill='#fff'";
-    const center=`<circle ${F} cx="200" cy="150" r="6"/>`; const L=(pts)=>pts.map(([x,y])=>`<line ${C} x1="200" y1="150" x2="${x}" y2="${y}"/>`).join(''); const B=(pts)=>pts.map(([x,y])=>`<circle ${F} cx="${x}" cy="${y}" r="6"/>`).join('');
-    let pts=[]; switch(mg){
+    const center=`<circle ${F} cx="200" cy="150" r="6"/>`;
+    const L=(pts)=>pts.map(([x,y])=>`<line ${C} x1="200" y1="150" x2="${x}" y2="${y}"/>`).join('');
+    const B=(pts)=>pts.map(([x,y])=>`<circle ${F} cx="${x}" cy="${y}" r="6"/>`).join('');
+    let pts=[];
+    switch(mg){
       case "linear": pts=[[110,150],[290,150]]; break;
       case "trigonal planar": pts=[[200,70],[140,210],[260,210]]; break;
       case "bent": pts=[[150,200],[250,200]]; break;
@@ -335,20 +369,27 @@
     }
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${center}${L(pts)}${B(pts)}</svg>`;
   }
+
   async function localSolveVSEPR(input){
-    const f=input.replace(/granite/ig,'graphite'); const {bonds,lone}=guessCounts(f); const s=classify(bonds,lone);
+    const f=input.trim().replace(/granite/ig,'graphite');
+    const {central,bonds} = countBonds(f);
+    const lp = lonePairs(central, bonds);
+    const {eg, mg, ed} = classifyGeometry(bonds, lp);
+    const svg = drawVSEPR(mg);
     return {
       system:"molecule",
       formula:f,
-      electron_geometry:s.eg,
-      molecular_geometry:s.mg,
-      electron_domains:`${s.ed} (${bonds} bonding + ${lone} lone)`,
-      bond_angles_deg:s.eg==="tetrahedral"?"~109.5°":s.eg==="trigonal planar"?"~120°":s.eg==="linear"?"180°":s.eg==="octahedral"?"90°":"varies",
-      hybridization:s.eg==="linear"?"sp":s.eg==="trigonal planar"?"sp2":s.eg==="tetrahedral"?"sp3":s.eg==="trigonal bipyramidal"?"sp3d":s.eg==="octahedral"?"sp3d2":"—",
-      svg:drawVSEPR(s.mg)
+      electron_geometry: eg,
+      molecular_geometry: mg,
+      electron_domains: `${ed} (${bonds} bonding + ${lp} lone)`,
+      bond_angles_deg: eg==="tetrahedral"?"~109.5°":eg==="trigonal planar"?"~120°":eg==="linear"?"180°":eg==="octahedral"?"90°":"varies",
+      hybridization: eg==="linear"?"sp":eg==="trigonal planar"?"sp2":eg==="tetrahedral"?"sp3":eg==="trigonal bipyramidal"?"sp3d":eg==="octahedral"?"sp3d2":"—",
+      svg
     };
   }
 
+  // expose the fixed function (keep names)
+  window.LocalChem.localSolveVSEPR = localSolveVSEPR;
   /* ========== public API ========== */
   async function localSolveEquation(userInput){
     // If user typed products, just balance & compute ΔH° if possible
@@ -476,5 +517,6 @@
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
