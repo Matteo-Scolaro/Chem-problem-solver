@@ -305,7 +305,7 @@ function predictProducts(reactants){
   }
   async function localDrawElement(symbol){
     const Z=PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
-    const sh=shells(Z); const v=PERIODIC.valence[symbol]??(sh.at(-1)||0);
+    const sh=shells(Z); const v=(PERIODIC.VE?.[symbol] ?? (sh.at(-1)||0));
     return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohrSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
   }
 
@@ -313,19 +313,29 @@ function predictProducts(reactants){
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
 
   function countBonds(formula){
-    // crude: number of atoms attached to the first element token
-    const core = (formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g)||[]);
-    if(core.length===0) return {central:"X", bonds:0};
-    const firstEl = /^[A-Z][a-z]?/.exec(core[0])[0];
-    const counts={};
-    core.forEach(tok=>{
-      const el=/^[A-Z][a-z]?/.exec(tok)[0];
-      const n=parseInt(tok.slice(el.length)||"1",10);
-      counts[el]=(counts[el]||0)+n;
-    });
-    const bonds = Object.entries(counts).reduce((a,[el,n])=> el===firstEl ? a : a+n ,0);
-    return {central:firstEl, bonds};
+  // tokens like ["H2","O"]
+  const toks = (formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g) || []);
+  if (toks.length === 0) return { central: "X", bonds: 0 };
+
+  // choose first NON-hydrogen token if possible (common general rule)
+  let firstEl = null;
+  for (const t of toks) {
+    const el = /^[A-Z][a-z]?/.exec(t)[0];
+    if (el !== "H") { firstEl = el; break; }
   }
+  const central = firstEl || /^[A-Z][a-z]?/.exec(toks[0])[0];
+
+  // count atoms of each element
+  const counts = {};
+  for (const tok of toks) {
+    const el = /^[A-Z][a-z]?/.exec(tok)[0];
+    const n = parseInt(tok.slice(el.length) || "1", 10);
+    counts[el] = (counts[el] || 0) + n;
+  }
+  // crude bond count = total atoms not equal to the central element
+  const bonds = Object.entries(counts).reduce((a,[el,n]) => el === central ? a : a + n, 0);
+  return { central, bonds };
+}
 
   function lonePairs(central, bonds){
     const VE = (window.PERIODIC.VE?.[central] ?? 4);           // valence electrons of central atom
@@ -388,8 +398,6 @@ function predictProducts(reactants){
     };
   }
 
-  // expose the fixed function (keep names)
-  window.LocalChem.localSolveVSEPR = localSolveVSEPR;
   /* ========== public API ========== */
   async function localSolveEquation(userInput){
     // If user typed products, just balance & compute ΔH° if possible
@@ -517,6 +525,7 @@ function predictProducts(reactants){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
