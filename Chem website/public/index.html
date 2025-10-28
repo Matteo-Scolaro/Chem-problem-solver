@@ -381,27 +381,34 @@ function buildSalt(cation, anion){
   /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
 
-  function countBonds(formula){
-  // tokens like ["H2","O"]
+function countBonds(formula){
   const toks = (formula.replace(/\s+/g,'').match(/[A-Z][a-z]?\d*/g) || []);
   if (toks.length === 0) return { central: "X", bonds: 0 };
 
-  // choose first NON-hydrogen token if possible (common general rule)
-  let firstEl = null;
-  for (const t of toks) {
-    const el = /^[A-Z][a-z]?/.exec(t)[0];
-    if (el !== "H") { firstEl = el; break; }
-  }
-  const central = firstEl || /^[A-Z][a-z]?/.exec(toks[0])[0];
-
-  // count atoms of each element
+  // counts per element
   const counts = {};
   for (const tok of toks) {
     const el = /^[A-Z][a-z]?/.exec(tok)[0];
-    const n = parseInt(tok.slice(el.length) || "1", 10);
+    const n  = parseInt(tok.slice(el.length) || "1", 10);
     counts[el] = (counts[el] || 0) + n;
   }
-  // crude bond count = total atoms not equal to the central element
+  const elements = Object.keys(counts);
+
+  // Special case: homonuclear triatomic (e.g., O3) → E–E–E with central E and 2 bonds
+  if (elements.length === 1 && Object.values(counts)[0] === 3) {
+    const el = elements[0];
+    return { central: el, bonds: 2 };
+  }
+
+  // choose first non-H token as central (simple heuristic)
+  let central = null;
+  for (const t of toks) {
+    const el = /^[A-Z][a-z]?/.exec(t)[0];
+    if (el !== "H") { central = el; break; }
+  }
+  central = central || /^[A-Z][a-z]?/.exec(toks[0])[0];
+
+  // crude bond count = total atoms not equal to central element
   const bonds = Object.entries(counts).reduce((a,[el,n]) => el === central ? a : a + n, 0);
   return { central, bonds };
 }
@@ -618,6 +625,7 @@ function buildSalt(cation, anion){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
