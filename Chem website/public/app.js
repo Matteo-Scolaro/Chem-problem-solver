@@ -1,5 +1,16 @@
 function $(s){return document.querySelector(s)}
 function on(el,ev,cb){el&&el.addEventListener(ev,cb)}
+window.switchView = function(id){
+  document.querySelectorAll('#home,.view').forEach(el=>{
+    if(el.id===id){ el.hidden=false; } else { el.hidden=true; }
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+document.querySelectorAll('.nav-card').forEach(card=>{
+  on(card,'click', ()=> switchView(card.dataset.view));
+});
+// start on Home
+switchView('home');
 
 // Equation
 (function(){
