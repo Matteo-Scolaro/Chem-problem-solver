@@ -249,15 +249,22 @@ function predictProducts(reactants){
   if (hasO2 && R.includes("C")) return { type:"oxidation", products:["CO2(g)"], mechanism:["Carbon oxidized to CO2"] };
   if (hasO2 && R.includes("S")) return { type:"oxidation", products:["SO2(g)"], mechanism:["Sulfur oxidized to SO2"] };
 
-  // Δ— ACID–BASE
-  if (R.some(isAcid) && R.some(isBase)) {
-    const acid = R.find(isAcid), base = R.find(isBase);
-    const acidAnion = acid.replace(/^H/,'');
-    const baseCat = (/^([A-Z][a-z]?)/.exec(base)||[])[1] || "Na";
-    return { type:"acid-base", products:[`${baseCat}${acidAnion}(aq)`, "H2O(l)"], mechanism:[
-      "HA → H⁺ + A⁻", "MOH → M⁺ + OH⁻", "H⁺ + OH⁻ → H2O", "M⁺ + A⁻ → MA"
-    ]};
-  }
+// — ACID–BASE
+if (R.some(isAcid) && R.some(isBase)) {
+  const acid = R.find(isAcid), base = R.find(isBase);
+  const acidAnion = acid.replace(/^H/,'');                 // e.g., HCl → Cl
+  const baseCat = (/^([A-Z][a-z]?)/.exec(base)||[])[1] || "Na";
+  return {
+    type: "acid-base",
+    products: [`${baseCat}${acidAnion}(aq)`, "H2O(l)"],
+    mechanism: [
+      `${acid} ⇌ H⁺ + ${acidAnion}⁻`,
+      `${base} ⇌ ${baseCat}⁺ + OH⁻`,
+      `H⁺ + OH⁻ → H2O`,
+      `${baseCat}⁺ + ${acidAnion}⁻ → ${baseCat}${acidAnion}(aq)`
+    ]
+  };
+}
 
   // Δ— SINGLE REPLACEMENT: M + M'X → M' + MX  (with charge balancing)
 // --- charges
@@ -611,6 +618,7 @@ function buildSalt(cation, anion){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
