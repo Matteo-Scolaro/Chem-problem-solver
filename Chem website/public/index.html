@@ -56,9 +56,26 @@
       <div class="fblock-note">* Lanthanides and Actinides shown below</div>
     </section>
 
+<section id="home" class="grid home-grid">
+  <div class="nav-card" data-view="eq">
+    <h3>Equation Builder</h3>
+    <p>Balance and predict products. ΔH°rxn from ΔH°f when available.</p>
+  </div>
+  <div class="nav-card" data-view="vsepr">
+    <h3>VSEPR Shapes</h3>
+    <p>Electron & molecular geometry + white SVG sketch.</p>
+  </div>
+  <div class="nav-card" data-view="draw">
+    <h3>Element Drawings</h3>
+    <p>Bohr / Bohr-Rutherford / Lewis (with electrons).</p>
+  </div>
+</section>
+    
     <!-- Solvers -->
     <section class="grid solver-grid">
       <!-- Equation -->
+      <section id="eq" class="view" hidden>
+  <button class="back" onclick="switchView('home')">← Back</button>
       <div class="card solver">
         <h3>Equation Builder</h3>
         <p class="muted">Enter reactants (with optional products). Examples: <code>Zn + CuSO4</code>, <code>H2 + O2 → H2O</code></p>
@@ -68,8 +85,11 @@
         </div>
         <pre id="eq-out" class="result"></pre>
       </div>
-
+</section>
+        
       <!-- VSEPR -->
+      <section id="vsepr" class="view" hidden>
+  <button class="back" onclick="switchView('home')">← Back</button>
       <div class="card solver">
         <h3>VSEPR Shape</h3>
         <p class="muted">Give a formula or keyword. Examples: <code>NH3</code>, <code>CO2</code>, <code>C (graphite)</code></p>
@@ -80,8 +100,11 @@
         <div id="vs-svg" class="svgwrap"></div>
         <pre id="vs-out" class="result"></pre>
       </div>
-
+</section>
+        
       <!-- Drawings -->
+      <section id="draw" class="view" hidden>
+  <button class="back" onclick="switchView('home')">← Back</button>
       <div class="card solver">
         <h3>Element Drawings</h3>
         <p class="muted">Simple Bohr / Bohr-Rutherford / Lewis diagrams (first 20 elements supported for now).</p>
@@ -96,6 +119,7 @@
         </div>
         <p id="draw-notes" class="muted" style="margin-top:.6rem;"></p>
       </div>
+        </section>
     </section>
 
   </main>
@@ -574,6 +598,7 @@ function predictProducts(reactants){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
