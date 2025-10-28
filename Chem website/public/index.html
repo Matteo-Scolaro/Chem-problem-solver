@@ -400,36 +400,60 @@ function predictProducts(reactants){
 
   /* ========== public API ========== */
   async function localSolveEquation(userInput){
-    // If user typed products, just balance & compute ΔH° if possible
-    if(userInput.includes('->')){
-      const res = balanceEquation(userInput);
+  // normalize a few common “space before subscript” typos for polyatomics
+  const norm = userInput
+    .replace(/SO4\s*([2-9])/gi, '(SO4)$1')
+    .replace(/NO3\s*([2-9])/gi, '(NO3)$1')
+    .replace(/CO3\s*([2-9])/gi, '(CO3)$1')
+    .replace(/PO4\s*([2-9])/gi, '(PO4)$1');
+
+  // If user typed an arrow but no products, we still predict.
+  if (norm.includes('->')) {
+    const [L,R] = norm.split('->').map(s=>s.trim());
+    if (!L) return { error: "Provide reactants before '->'." };
+    if (!R) {
+      const reactants = L.split('+').map(s=>s.trim()).filter(Boolean);
+      const pred = predictProducts(reactants);
+      if (!pred.products.length) return { error: "Couldn't predict products for those reactants." };
+      const res = balanceEquation(`${reactants.join(' + ')} -> ${pred.products.join(' + ')}`);
       const dH = deltaH_from_Hf(res.left,res.right);
       return {
         balanced_equation: res.balanced,
         products: res.right.map(p=>p.formula),
-        reaction_type: "user-specified",
+        reaction_type: pred.type,
         enthalpy_kJ_per_mol: dH.dH,
         notes: dH.note,
-        mechanism: []
+        mechanism: pred.mechanism
       };
     }
-    // Otherwise: predict products, then balance
-    const reactants = userInput.split('+').map(s=>s.trim()).filter(Boolean);
-    const pred = predictProducts(reactants);
-    if(!pred.products.length){
-      return { error: "Couldn't predict products for that input. Add products (use 'A + B -> ...') or try a simpler pair (combustion, acid-base, single/double replacement)." };
-    }
-    const res = balanceEquation(`${reactants.join(' + ')} -> ${pred.products.join(' + ')}`);
+    // Arrow with explicit products: just balance + ΔH°
+    const res = balanceEquation(norm);
     const dH = deltaH_from_Hf(res.left,res.right);
     return {
       balanced_equation: res.balanced,
       products: res.right.map(p=>p.formula),
-      reaction_type: pred.type,
+      reaction_type: "user-specified",
       enthalpy_kJ_per_mol: dH.dH,
       notes: dH.note,
-      mechanism: pred.mechanism
+      mechanism: []
     };
   }
+
+  // No arrow: predict products then balance.
+  const reactants = norm.split('+').map(s=>s.trim()).filter(Boolean);
+  const pred = predictProducts(reactants);
+  if (!pred.products.length) return { error: "Couldn't predict products for that input. Add products (A + B -> ...) or use a simpler pair." };
+  const res = balanceEquation(`${reactants.join(' + ')} -> ${pred.products.join(' + ')}`);
+  const dH = deltaH_from_Hf(res.left,res.right);
+  return {
+    balanced_equation: res.balanced,
+    products: res.right.map(p=>p.formula),
+    reaction_type: pred.type,
+    enthalpy_kJ_per_mol: dH.dH,
+    notes: dH.note,
+    mechanism: pred.mechanism
+  };
+}
 
   window.LocalChem = { localSolveEquation, localDrawElement, localSolveVSEPR };
 })();
@@ -525,6 +549,7 @@ function predictProducts(reactants){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
