@@ -208,72 +208,97 @@
 function predictProducts(reactants){
   const R = reactants.map(s=>s.trim());
 
-  // 0) Special: water formation
-  if(R.includes("H2") && R.includes("O2")){
-    return {type:"synthesis (oxidation)", products:["H2O(l)"], mechanism:[
-      "Initiation of O2 to reactive species (overall model)",
-      "H–H broken, O–H formed",
-      "Overall: 2 H2 + O2 → 2 H2O"
-    ]};
-  }
-
-  // 1) Combustion of hydrocarbons/alcohols: → CO2 + H2O
+  // helpers
   const hasO2 = R.some(x=>x.replace(/\s+/g,'').toUpperCase()==="O2");
-  const hc = R.find(x=>/^C\d*H\d+([O]\d+)?$/i.test(x.replace(/\s+/g,'')));
-  if(hasO2 && hc){
-    return {type:"combustion", products:["CO2(g)","H2O(l)"], mechanism:[
-      "Oxidation of C/H framework",
-      "C=O and O–H bond formation dominates enthalpy"
-    ]};
-  }
+  const HC = R.find(x=>/^C\d*H\d*(O\d*)?$/i.test(x.replace(/\s+/g,'')));
 
-  // 2) Simple element oxidation: C + O2 → CO2 ; S + O2 → SO2
-  if(hasO2 && R.includes("C"))  return {type:"oxidation", products:["CO2(g)"], mechanism:["Carbon oxidized to CO2"]};
-  if(hasO2 && R.includes("S"))  return {type:"oxidation", products:["SO2(g)"], mechanism:["Sulfur oxidized to SO2"]};
-
-  // 3) Acid–base: HA + MOH → MA + H2O
+  // quick acid/base test
   const isAcid = x => /^H[A-Z]/.test(x) && !/^H2O$/.test(x);
   const isBase = x => /(OH)/.test(x) && !/^H2O$/.test(x);
-  if(R.some(isAcid) && R.some(isBase)){
+
+  // Δ— COMBUSTION
+  if (hasO2 && HC) {
+    return { type:"combustion", products:["CO2(g)","H2O(l)"], mechanism:[
+      "Oxidation of C/H framework to CO2 and H2O"
+    ]};
+  }
+  if (hasO2 && R.includes("C")) return { type:"oxidation", products:["CO2(g)"], mechanism:["Carbon oxidized to CO2"] };
+  if (hasO2 && R.includes("S")) return { type:"oxidation", products:["SO2(g)"], mechanism:["Sulfur oxidized to SO2"] };
+
+  // Δ— ACID–BASE
+  if (R.some(isAcid) && R.some(isBase)) {
     const acid = R.find(isAcid), base = R.find(isBase);
     const acidAnion = acid.replace(/^H/,'');
     const baseCat = (/^([A-Z][a-z]?)/.exec(base)||[])[1] || "Na";
-    return {type:"acid-base", products:[`${baseCat}${acidAnion}(aq)`,"H2O(l)"], mechanism:[
+    return { type:"acid-base", products:[`${baseCat}${acidAnion}(aq)`, "H2O(l)"], mechanism:[
       "HA → H⁺ + A⁻", "MOH → M⁺ + OH⁻", "H⁺ + OH⁻ → H2O", "M⁺ + A⁻ → MA"
     ]};
   }
 
-  // 4) Single replacement: M + M'X → M' + MX
-  const METALS = new Set(["Li","Na","K","Rb","Cs","Mg","Ca","Sr","Ba","Al","Zn","Fe","Cu","Ag","Ni","Co","Sn","Pb"]);
-  const isMetal = x => METALS.has(x);
+  // Δ— SINGLE REPLACEMENT: M + M'X → M' + MX  (with charge balancing)
+  const METAL_CHARGE = {Li:1,Na:1,K:1,Rb:1,Cs:1,Fr:1,Mg:2,Ca:2,Sr:2,Ba:2,Zn:2,Fe:2,Cu:2,Ni:2,Co:2,Sn:2,Pb:2,Al:3,Ag:1};
+  const ANION_CHARGE = {Cl:-1,Br:-1,I:-1,F:-1,OH:-1,NO3:-1,CN:-1,SO4:-2,CO3:-2,SO3:-2,PO4:-3};
+  const isMetal = x => METAL_CHARGE[x] !== undefined;
+
   const splitSalt = x => {
-    const t=x.replace(/\s+/g,''); const m=/^([A-Z][a-z]?)(.*)$/.exec(t); if(!m) return null;
-    const c=m[1], rest=m[2]||""; const AN=["Cl","Br","I","NO3","SO4","CO3","OH","PO4","F","CN"];
-    const a = AN.find(a=>rest.startsWith(a)); return a?{cation:c, anion:a}:null;
+    // supports simple cation + (polyatomic) anion with optional parentheses, e.g. Fe2(SO4)3, CuCl2, Na2CO3
+    const t = x.replace(/\s+/g,'');
+    const m = /^([A-Z][a-z]?)(.*)$/.exec(t); if(!m) return null;
+    const cation = m[1]; let rest = m[2] || "";
+
+    // extract polyatomic group if present
+    let anion = null, mult = 1;
+    // (SO4)3, (NO3)2, etc.
+    let pm = /^\(([^)]+)\)(\d+)$/.exec(rest);
+    if (pm) { anion = pm[1]; mult = parseInt(pm[2],10); }
+    else {
+      // plain like Cl, NO3, CO3, SO4
+      const hit = Object.keys(ANION_CHARGE).find(a => rest.startsWith(a));
+      if (hit) { anion = hit; mult = parseInt(rest.slice(hit.length)||"1",10); }
+    }
+    if(!anion) return null;
+    return { cation, anion, mult };
   };
-  const metal = R.find(isMetal), salt = R.map(splitSalt).find(Boolean);
-  if(metal && salt){
-    return {type:"single replacement (redox)", products:[`${metal}${salt.anion}(aq)`, `${salt.cation}(s)`], mechanism:[
+
+  function buildSalt(cation, anion){
+    const zM = Math.max(1, METAL_CHARGE[cation] ?? 1);
+    const zX = Math.abs(ANION_CHARGE[anion] ?? 1);
+    const gcd = (a,b)=>b?gcd(b,a%b):Math.abs(a);
+    const a = zX/gcd(zM,zX), b = zM/gcd(zM,zX); // M_a X_b
+    const poly = /[A-Z].*[A-Z]/.test(anion);     // multi-atom anion?
+    const X = poly && b>1 ? `(${anion})${b}` : `${anion}${b===1?"":b}`;
+    const M = `${cation}${a===1?"":a}`;
+    return `${M}${X}(aq)`;
+  }
+
+  const metal = R.find(isMetal);
+  const salt  = R.map(splitSalt).find(Boolean);
+  if (metal && salt) {
+    const productSalt = buildSalt(metal, salt.anion);      // MX (charge balanced)
+    const displaced   = `${salt.cation}(s)`;              // M'
+    return { type:"single replacement (redox)", products:[productSalt, displaced], mechanism:[
       `${metal} → ${metal}ⁿ⁺ + n e⁻`,
       `${salt.cation}ᵐ⁺ + m e⁻ → ${salt.cation}(s)`
     ]};
   }
 
-  // 5) Double displacement: AB + CD → AD + CB
+  // Δ— DOUBLE DISPLACEMENT (metathesis)
   const salts = R.map(splitSalt).filter(Boolean);
-  if(salts.length===2){
+  if (salts.length===2){
     const [s1,s2]=salts;
-    return {type:"double displacement", products:[`${s1.cation}${s2.anion}(aq)`, `${s2.cation}${s1.anion}(aq)`], mechanism:[
+    const AD = buildSalt(s1.cation, s2.anion);
+    const CB = buildSalt(s2.cation, s1.anion);
+    return { type:"double displacement", products:[AD,CB], mechanism:[
       "Dissociation in water", "Ion exchange", "Check precipitation/neutralization"
     ]};
   }
 
-  // 6) Very simple synthesis: A + B → AB (elements)
-  if(R.length===2 && R.every(x=>/^[A-Z][a-z]?$/.test(x))){
-    return {type:"synthesis", products:[`${R[0]}${R[1]}(s)`], mechanism:["Combination of elements"]};
+  // Δ— SIMPLE SYNTHESIS of two elements
+  if (R.length===2 && R.every(x=>/^[A-Z][a-z]?$/.test(x))) {
+    return { type:"synthesis", products:[`${R[0]}${R[1]}(s)`], mechanism:["Combination of elements"] };
   }
 
-  return {type:"unknown", products:[], mechanism:[]};
+  return { type:"unknown", products:[], mechanism:[] };
 }
 
   /* ========== Drawings (same as you have, white electrons) ========== */
@@ -549,6 +574,7 @@ function predictProducts(reactants){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
