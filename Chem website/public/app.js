@@ -1,16 +1,39 @@
-function $(s){return document.querySelector(s)}
-function on(el,ev,cb){el&&el.addEventListener(ev,cb)}
-window.switchView = function(id){
+function $(s){ return document.querySelector(s); }
+function on(el,ev,cb){ el && el.addEventListener(ev,cb); }
+
+function show(view){
+  // show one view, hide others
   document.querySelectorAll('#home,.view').forEach(el=>{
-    if(el.id===id){ el.hidden=false; } else { el.hidden=true; }
+    el.hidden = (el.id !== view) && !(view === 'home' && el.id === 'home');
   });
-  window.scrollTo({top:0,behavior:'smooth'});
-};
+  window.scrollTo(0,0);
+}
+
+// route <=> view mapping
+function pathToView(p){
+  const seg = (p || '/').replace(/\/+$/,'').split('/').pop();
+  if (!seg || seg === '') return 'home';
+  return ['eq','vsepr','draw'].includes(seg) ? seg : 'home';
+}
+
+function goto(view){
+  history.pushState({view}, '', view === 'home' ? '/' : `/${view}`);
+  show(view);
+}
+
+// nav cards
 document.querySelectorAll('.nav-card').forEach(card=>{
-  on(card,'click', ()=> switchView(card.dataset.view));
+  card.addEventListener('click', ()=> goto(card.dataset.view));
 });
-// start on Home
-switchView('home');
+
+// back buttons
+document.querySelectorAll('.back').forEach(btn=>{
+  btn.addEventListener('click', ()=> goto('home'));
+});
+
+// initial route + back/forward
+window.addEventListener('popstate', ()=> show(pathToView(location.pathname)));
+show(pathToView(location.pathname));
 
 // Equation
 (function(){
