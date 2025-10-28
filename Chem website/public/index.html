@@ -260,51 +260,64 @@ function predictProducts(reactants){
   }
 
   // Δ— SINGLE REPLACEMENT: M + M'X → M' + MX  (with charge balancing)
-  const METAL_CHARGE = {Li:1,Na:1,K:1,Rb:1,Cs:1,Fr:1,Mg:2,Ca:2,Sr:2,Ba:2,Zn:2,Fe:2,Cu:2,Ni:2,Co:2,Sn:2,Pb:2,Al:3,Ag:1};
-  const ANION_CHARGE = {Cl:-1,Br:-1,I:-1,F:-1,OH:-1,NO3:-1,CN:-1,SO4:-2,CO3:-2,SO3:-2,PO4:-3};
-  const isMetal = x => METAL_CHARGE[x] !== undefined;
+// --- charges
+const METAL_CHARGE = {Li:1,Na:1,K:1,Rb:1,Cs:1,Fr:1,Mg:2,Ca:2,Sr:2,Ba:2,Zn:2,Fe:2,Cu:2,Ni:2,Co:2,Sn:2,Pb:2,Al:3,Ag:1};
+const ANION_CHARGE = {Cl:-1,Br:-1,I:-1,F:-1,OH:-1,NO3:-1,CN:-1,SO4:-2,CO3:-2,SO3:-2,PO4:-3};
+const isMetal = x => METAL_CHARGE[x] !== undefined;
 
-  const splitSalt = x => {
-    // supports simple cation + (polyatomic) anion with optional parentheses, e.g. Fe2(SO4)3, CuCl2, Na2CO3
-    const t = x.replace(/\s+/g,'');
-    const m = /^([A-Z][a-z]?)(.*)$/.exec(t); if(!m) return null;
-    const cation = m[1]; let rest = m[2] || "";
+// parse salts like "Fe2(SO4)3", "CuCl2", "Na2CO3"
+const splitSalt = x => {
+  const t = x.replace(/\s+/g,'');                     // kill spaces (handles "SO4 3")
+  const m = /^([A-Z][a-z]?)(.*)$/.exec(t);            // cation symbol + rest
+  if (!m) return null;
+  const cation = m[1];
+  let rest = (m[2] || "").replace(/^\d+/, "");        // drop any leading count like the "2" in Fe2(SO4)3
 
-    // extract polyatomic group if present
-    let anion = null, mult = 1;
-    // (SO4)3, (NO3)2, etc.
-    let pm = /^\(([^)]+)\)(\d+)$/.exec(rest);
-    if (pm) { anion = pm[1]; mult = parseInt(pm[2],10); }
-    else {
-      // plain like Cl, NO3, CO3, SO4
-      const hit = Object.keys(ANION_CHARGE).find(a => rest.startsWith(a));
-      if (hit) { anion = hit; mult = parseInt(rest.slice(hit.length)||"1",10); }
-    }
-    if(!anion) return null;
-    return { cation, anion, mult };
-  };
-
-  function buildSalt(cation, anion){
-    const zM = Math.max(1, METAL_CHARGE[cation] ?? 1);
-    const zX = Math.abs(ANION_CHARGE[anion] ?? 1);
-    const gcd = (a,b)=>b?gcd(b,a%b):Math.abs(a);
-    const a = zX/gcd(zM,zX), b = zM/gcd(zM,zX); // M_a X_b
-    const poly = /[A-Z].*[A-Z]/.test(anion);     // multi-atom anion?
-    const X = poly && b>1 ? `(${anion})${b}` : `${anion}${b===1?"":b}`;
-    const M = `${cation}${a===1?"":a}`;
-    return `${M}${X}(aq)`;
+  // (SO4)3 style
+  let anion = null, mult = 1;
+  let pm = /^\(([^)]+)\)(\d+)$/.exec(rest);
+  if (pm) { anion = pm[1]; mult = parseInt(pm[2],10); }
+  else {
+    const hit = Object.keys(ANION_CHARGE).find(a => rest.startsWith(a));
+    if (hit) { anion = hit; mult = parseInt(rest.slice(hit.length)||"1",10); }
   }
+  if (!anion) return null;
+  return { cation, anion, mult };
+};
 
+function buildSalt(cation, anion){
+  const zM = Math.max(1, METAL_CHARGE[cation] ?? 1);
+  const zX = Math.abs(ANION_CHARGE[anion] ?? 1);
+  const gcd = (a,b)=>b?gcd(b,a%b):Math.abs(a);
+  const a = zX/gcd(zM,zX), b = zM/gcd(zM,zX);  // M_a X_b
+  const poly = /[A-Z].*[A-Z]/.test(anion);
+  const X = poly && b>1 ? `(${anion})${b}` : `${anion}${b===1?"":b}`;
+  const M = `${cation}${a===1?"":a}`;
+  return `${M}${X}(aq)`;
+}
+
+// — SINGLE REPLACEMENT: M + M'X → M' + MX
+{
   const metal = R.find(isMetal);
   const salt  = R.map(splitSalt).find(Boolean);
   if (metal && salt) {
-    const productSalt = buildSalt(metal, salt.anion);      // MX (charge balanced)
-    const displaced   = `${salt.cation}(s)`;              // M'
-    return { type:"single replacement (redox)", products:[productSalt, displaced], mechanism:[
-      `${metal} → ${metal}ⁿ⁺ + n e⁻`,
-      `${salt.cation}ᵐ⁺ + m e⁻ → ${salt.cation}(s)`
-    ]};
+    const productSalt = buildSalt(metal, salt.anion);         // MX (charge-balanced)
+    const displaced   = `${salt.cation}(s)`;                  // M' precipitates as metal
+
+    // mechanism with actual symbols and charges
+    const zM = METAL_CHARGE[metal] ?? 1;
+    const zC = METAL_CHARGE[salt.cation] ?? 1;
+    const ch = n => (n===1 ? "⁺" : `${n}⁺`);
+    return {
+      type: "single replacement (redox)",
+      products: [productSalt, displaced],
+      mechanism: [
+        `${metal} → ${metal}${ch(zM)} + ${zM} e⁻`,
+        `${salt.cation}${ch(zC)} + ${zC} e⁻ → ${salt.cation}(s)`
+      ]
+    };
   }
+}
 
   // Δ— DOUBLE DISPLACEMENT (metathesis)
   const salts = R.map(splitSalt).filter(Boolean);
@@ -598,6 +611,7 @@ function predictProducts(reactants){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
