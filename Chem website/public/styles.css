@@ -81,3 +81,15 @@ button.primary:disabled{opacity:.6;cursor:not-allowed}
 .svgwrap svg .wfill{ fill:#fff; stroke:none; }
 .result b{ color:#fff }
 .result .title{ font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
+
+a, a:link, a:visited, a:hover, a:active, a:focus {
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Keep card hover clean and subtle */
+.nav-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
