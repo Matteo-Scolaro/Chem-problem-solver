@@ -1,13 +1,49 @@
 function $(s){ return document.querySelector(s); }
-function on(el,ev,cb){ el && el.addEventListener(ev,cb); }
+function $all(s){ return Array.from(document.querySelectorAll(s)); }
 
-function show(view){
-  // show one view, hide others
-  document.querySelectorAll('#home,.view').forEach(el=>{
-    el.hidden = (el.id !== view) && !(view === 'home' && el.id === 'home');
-  });
-  window.scrollTo(0,0);
+function showRoute(route){
+  // route: '/', '/eq', '/vsepr', '/draw'
+  const home = $('#home').closest('section.card') ? $('#home').closest('section.card') : null;
+
+  // Sections
+  const pt = $('#ptable')?.closest('section');        // periodic table card
+  const homeGrid = $('#home');
+  const views = $all('.view');
+
+  if (route === '/') {
+    pt && (pt.hidden = false);
+    homeGrid.hidden = false;
+    views.forEach(v => v.hidden = true);
+  } else {
+    pt && (pt.hidden = true);       // hide periodic table on tool pages
+    homeGrid.hidden = true;         // hide the 3 cards
+    views.forEach(v => v.hidden = true);
+    const id = route.replace('/','');
+    const target = document.getElementById(id);
+    if (target) target.hidden = false;
+    window.scrollTo({top:0, behavior:'instant'});
+  }
 }
+
+function navigate(href){
+  history.pushState({}, '', href);
+  showRoute(location.pathname);
+}
+
+window.addEventListener('click', (e)=>{
+  const a = e.target.closest('a[href^="/"]');
+  if (!a) return;
+  const url = new URL(a.href);
+  if (url.origin === location.origin) {
+    e.preventDefault();
+    navigate(url.pathname);
+  }
+});
+
+window.addEventListener('popstate', ()=> showRoute(location.pathname));
+
+// Initial render
+document.addEventListener('DOMContentLoaded', ()=> showRoute(location.pathname));
 
 // route <=> view mapping
 function pathToView(p){
