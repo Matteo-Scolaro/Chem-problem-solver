@@ -5,8 +5,25 @@ const on = (el, ev, cb) => el && el.addEventListener(ev, cb);
 
 // show one view, hide others
 function show(id){
-  $$('#home,.view').forEach(el => el.hidden = (el.id !== id && !(id==='home' && el.id==='home')));
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  const isHome = (id === 'home');
+
+  // Sections you want visible on Home only
+  const ptable  = $('#ptable')?.closest('section');  // periodic table block (if present)
+  const homeGrid = $('#home');
+
+  // Toggle visibility
+  if (ptable)   ptable.hidden   = !isHome;
+  if (homeGrid) homeGrid.hidden = !isHome;
+
+  // Show only the requested tool view (or none when home)
+  $$('.view').forEach(v => v.hidden = (isHome || v.id !== id));
+
+  // IMPORTANT: no global scroll-to-top anymore
+  // If you want the tool to appear at the top of the viewport, use:
+  if (!isHome) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
 }
 
 // --- Router: #/eq | #/vsepr | #/draw | (default home)
