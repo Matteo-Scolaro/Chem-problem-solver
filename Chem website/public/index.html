@@ -456,23 +456,41 @@ function countBonds(formula){
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${center}${L(pts)}${B(pts)}</svg>`;
   }
 
-  async function localSolveVSEPR(input){
-    const f=input.trim().replace(/granite/ig,'graphite');
-    const {central,bonds} = countBonds(f);
-    const lp = lonePairs(central, bonds);
-    const {eg, mg, ed} = classifyGeometry(bonds, lp);
+async function localSolveVSEPR(input){
+  const f = input.trim().replace(/granite/ig,'graphite');
+
+  // --- Special case: ozone O3 (3 domains: 2 bonding, 1 lone; sp2) ---
+  if (/^O\s*3$/i.test(f)) {
+    const eg = "trigonal planar", mg = "bent", ed = 3;
     const svg = drawVSEPR(mg);
     return {
-      system:"molecule",
-      formula:f,
+      system: "molecule",
+      formula: "O3",
       electron_geometry: eg,
       molecular_geometry: mg,
-      electron_domains: `${ed} (${bonds} bonding + ${lp} lone)`,
-      bond_angles_deg: eg==="tetrahedral"?"~109.5°":eg==="trigonal planar"?"~120°":eg==="linear"?"180°":eg==="octahedral"?"90°":"varies",
-      hybridization: eg==="linear"?"sp":eg==="trigonal planar"?"sp2":eg==="tetrahedral"?"sp3":eg==="trigonal bipyramidal"?"sp3d":eg==="octahedral"?"sp3d2":"—",
+      electron_domains: `${ed} (2 bonding + 1 lone)`,
+      bond_angles_deg: "~117°",
+      hybridization: "sp2",
       svg
     };
   }
+
+  // --- Generic fallback (works well for many ABn): bonds = neighbors; lp from VE ---
+  const {central,bonds} = countBonds(f);
+  const lp = lonePairs(central, bonds);
+  const {eg, mg, ed} = classifyGeometry(bonds, lp);
+  const svg = drawVSEPR(mg);
+  return {
+    system:"molecule",
+    formula:f,
+    electron_geometry: eg,
+    molecular_geometry: mg,
+    electron_domains: `${ed} (${bonds} bonding + ${lp} lone)`,
+    bond_angles_deg: eg==="tetrahedral"?"~109.5°":eg==="trigonal planar"?"~120°":eg==="linear"?"180°":eg==="octahedral"?"90°":"varies",
+    hybridization: eg==="linear"?"sp":eg==="trigonal planar"?"sp2":eg==="tetrahedral"?"sp3":eg==="trigonal bipyramidal"?"sp3d":eg==="octahedral"?"sp3d2":"—",
+    svg
+  };
+}
 
   /* ========== public API ========== */
   async function localSolveEquation(userInput){
@@ -625,6 +643,7 @@ function countBonds(formula){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
