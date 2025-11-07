@@ -32,6 +32,7 @@ function renderRoute(){
   if (h.startsWith('#/eq'))   return show('eq');
   if (h.startsWith('#/vsepr'))return show('vsepr');
   if (h.startsWith('#/draw')) return show('draw');
+  if (h.startsWith('#/aufbau')) return show('aufbau');
   show('home');
 }
 window.addEventListener('hashchange', renderRoute);
@@ -134,4 +135,33 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
       btn.disabled = false;
     }
   });
+})();
+
+// ===== Aufbau tool wiring =====
+(function(){
+  const form = document.getElementById('aufbau-form');
+  if(!form) return; // defensive
+  const inp  = document.getElementById('aufbau-input');
+  const shCB = document.getElementById('aufbau-shorthand');
+  const cfg  = document.getElementById('aufbau-config');
+  const sh   = document.getElementById('aufbau-sh');
+  const dia  = document.getElementById('aufbau-diagram');
+
+  function run(e){
+    e && e.preventDefault();
+    try{
+      const res = window.LocalChem.localAufbau(inp.value, shCB.checked);
+      cfg.innerHTML = res.configFullHtml;
+      sh.innerHTML  = res.shorthandHtml;
+      dia.innerHTML = res.diagramHtml;
+    }catch(err){
+      cfg.innerHTML = '';
+      sh.innerHTML  = '';
+      dia.innerHTML = `<div class="error">${err.message}</div>`;
+    }
+  }
+
+  form.addEventListener('submit', run);
+  // default example
+  if(!location.hash.startsWith('#/')) inp.value = 'K';
 })();
