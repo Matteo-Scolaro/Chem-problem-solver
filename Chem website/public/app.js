@@ -139,8 +139,8 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
 
 // ===== Aufbau tool wiring =====
 (function(){
-  const form = document.getElementById('aufbau-form');
-  if(!form) return; // defensive
+  const form = document.getElementById('aufbau-form'); // optional now
+  const btn  = document.getElementById('aufbau-run');
   const inp  = document.getElementById('aufbau-input');
   const shCB = document.getElementById('aufbau-shorthand');
   const cfg  = document.getElementById('aufbau-config');
@@ -161,7 +161,6 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
     }
   }
 
-  form.addEventListener('submit', run);
-  // default example
-  if(!location.hash.startsWith('#/')) inp.value = 'K';
+  btn && btn.addEventListener('click', run);
+  form && form.addEventListener('submit', run); // enter key still works
 })();
