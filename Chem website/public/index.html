@@ -73,6 +73,10 @@
   <h3>Aufbau (Orbital Diagram)</h3>
   <p>Electron configuration + orbital boxes (↑/↓, Hund).</p>
 </a>
+ <a class="nav-card" href="#/stoich" data-view="stoich">
+  <h3>Stoichiometry</h3>
+  <p>Mass ↔ moles, solutions (M), and gases (PV=nRT) with any reaction.</p>
+</a> 
 </section>
     
     <!-- Solvers -->
@@ -151,7 +155,106 @@
     </div>
   </div>
 </section>
-      
+
+      <!-- Soichiometry -->
+<section id="stoich" class="view" hidden>
+  <button class="back"><a href="/" style="color:inherit;text-decoration:none;">← Back</a></button>
+
+  <div class="card solver">
+    <h3>Stoichiometry</h3>
+    <p class="muted">Enter a reaction (e.g., <code>C3H8 + O2 -> CO2 + H2O</code>). If unbalanced, it will be balanced automatically.</p>
+
+    <div class="form">
+      <label>Reaction</label>
+      <input id="st-eq" type="text" placeholder="e.g., C3H8 + O2 -> CO2 + H2O">
+
+      <div class="grid2">
+        <div>
+          <label>Known species</label>
+          <select id="st-known"></select>
+        </div>
+        <div>
+          <label>Target species</label>
+          <select id="st-target"></select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Known mode</label>
+          <select id="st-known-mode">
+            <option value="mol">Moles (mol)</option>
+            <option value="mass">Mass (g)</option>
+            <option value="solution">Solution (M·V)</option>
+            <option value="gas">Gas (PV=nRT)</option>
+          </select>
+        </div>
+        <div>
+          <label>Output as</label>
+          <select id="st-out-mode">
+            <option value="mol">Moles (mol)</option>
+            <option value="mass">Mass (g)</option>
+            <option value="solution">Solution volume (L at M)</option>
+            <option value="gas">Gas volume (L at P,T)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Known inputs -->
+      <div id="st-known-fields">
+        <!-- mol -->
+        <div class="mode mode-mol">
+          <label>n (mol)</label>
+          <input id="st-known-mol" type="number" step="any" placeholder="e.g., 0.50">
+        </div>
+        <!-- mass -->
+        <div class="mode mode-mass" hidden>
+          <label>m (g)</label>
+          <input id="st-known-g" type="number" step="any" placeholder="e.g., 44.0">
+        </div>
+        <!-- solution -->
+        <div class="mode mode-solution" hidden>
+          <div class="grid2">
+            <div><label>M (mol/L)</label><input id="st-known-M" type="number" step="any" placeholder="e.g., 1.0"></div>
+            <div><label>V (L)</label><input id="st-known-VL" type="number" step="any" placeholder="e.g., 0.250"></div>
+          </div>
+        </div>
+        <!-- gas -->
+        <div class="mode mode-gas" hidden>
+          <div class="grid3">
+            <div><label>P (atm)</label><input id="st-P" type="number" step="any" placeholder="e.g., 1.00"></div>
+            <div><label>V (L)</label><input id="st-V" type="number" step="any" placeholder="e.g., 2.00"></div>
+            <div><label>T (K)</label><input id="st-T" type="number" step="any" placeholder="e.g., 298"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output conditions -->
+      <div id="st-out-fields">
+        <div class="mode mode-solution" hidden>
+          <div class="grid1">
+            <div><label>M (mol/L)</label><input id="st-out-M" type="number" step="any" placeholder="e.g., 0.50"></div>
+          </div>
+        </div>
+        <div class="mode mode-gas" hidden>
+          <div class="grid3">
+            <div><label>P (atm)</label><input id="st-out-P" type="number" step="any" placeholder="e.g., 1.00"></div>
+            <div><label>T (K)</label><input id="st-out-T" type="number" step="any" placeholder="e.g., 298"></div>
+            <div style="align-self:end;opacity:.8;">Uses R = 0.082057 L·atm·K⁻¹·mol⁻¹</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button id="st-parse" type="button">Parse reaction</button>
+        <button id="st-run" class="primary" type="button">Compute</button>
+      </div>
+    </div>
+
+    <div class="result" id="st-result"></div>
+  </div>
+</section>
+    
     </section>
     
   </main>
@@ -821,6 +924,7 @@ function buildDiagram(occFull, Z, useSh = true){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
