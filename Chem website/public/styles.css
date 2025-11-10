@@ -111,3 +111,6 @@ a, a:link, a:visited, a:hover, a:active, a:focus {
 }
 .tool-form .chk { display: inline-flex; gap: .5rem; align-items: center; }
 .orbital-diagram .error { color: #ffb3b3; }
+.orbital-diagram .label { width: 3.4rem; }
+.orbital-diagram .box { width: 2.4rem; height: 1.7rem; }
+
