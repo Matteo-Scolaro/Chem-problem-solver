@@ -824,12 +824,157 @@ function buildDiagram(occFull, Z, useSh = true){
 
   return { localAufbau };
 })();
+
+/* ===== LocalChem: Stoichiometry engine ===== */
+const LC_Stoich = (()=>{
+  // --- atomic weights (IUPAC conventional) – handful of decimals is plenty
+  const AW = {
+    H:1.008, He:4.0026, Li:6.94, Be:9.0122, B:10.81, C:12.011, N:14.007, O:15.999, F:18.998, Ne:20.180,
+    Na:22.990, Mg:24.305, Al:26.982, Si:28.085, P:30.974, S:32.06, Cl:35.45, Ar:39.948, K:39.098, Ca:40.078,
+    Sc:44.956, Ti:47.867, V:50.942, Cr:51.996, Mn:54.938, Fe:55.845, Co:58.933, Ni:58.693, Cu:63.546, Zn:65.38,
+    Ga:69.723, Ge:72.630, As:74.922, Se:78.971, Br:79.904, Kr:83.798, Rb:85.468, Sr:87.62, Y:88.906, Zr:91.224,
+    Nb:92.906, Mo:95.95, Tc:98, Ru:101.07, Rh:102.91, Pd:106.42, Ag:107.87, Cd:112.41, In:114.82, Sn:118.71,
+    Sb:121.76, Te:127.60, I:126.90, Xe:131.29, Cs:132.91, Ba:137.33, La:138.91, Ce:140.12, Pr:140.91, Nd:144.24,
+    Sm:150.36, Eu:151.96, Gd:157.25, Tb:158.93, Dy:162.50, Ho:164.93, Er:167.26, Tm:168.93, Yb:173.05, Lu:174.97,
+    Hf:178.49, Ta:180.95, W:183.84, Re:186.21, Os:190.23, Ir:192.22, Pt:195.08, Au:196.97, Hg:200.59, Tl:204.38,
+    Pb:207.2, Bi:208.98, Po:209, At:210, Rn:222, Fr:223, Ra:226, Ac:227, Th:232.04, Pa:231.04, U:238.03,
+    Np:237, Pu:244, Am:243, Cm:247, Bk:247, Cf:251, Es:252, Fm:257, Md:258, No:259, Lr:262
+  };
+
+  // Parse formula to element counts; supports parentheses and multipliers
+  function parseFormula(f){
+    let i=0;
+    function parseGroup(){
+      const counts = {};
+      while(i < f.length){
+        if(f[i] === ')'){ break; }
+        if(f[i] === '('){
+          i++; const inner = parseGroup();
+          if(f[i] !== ')') throw Error("Missing ')'");
+          i++;
+          const mult = readNum();
+          mulAdd(counts, inner, mult||1);
+          continue;
+        }
+        const el = readEl();
+        const n  = readNum() || 1;
+        counts[el] = (counts[el]||0) + n;
+      }
+      return counts;
+    }
+    function readEl(){
+      if(!/[A-Z]/.test(f[i])) throw Error("Bad element in formula");
+      let el = f[i++]; if(i<f.length && /[a-z]/.test(f[i])) el += f[i++];
+      return el;
+    }
+    function readNum(){
+      let s=""; while(i<f.length && /[0-9]/.test(f[i])) s += f[i++];
+      return s ? +s : 0;
+    }
+    function mulAdd(dst,src,m){
+      for(const k in src) dst[k]=(dst[k]||0)+src[k]*m;
+    }
+    const res = parseGroup();
+    if(i!==f.length) throw Error("Unexpected token in formula");
+    return res;
+  }
+
+  function molarMass(formula){
+    const c = parseFormula(formula);
+    let mm = 0;
+    for(const el in c){
+      if(!(el in AW)) throw Error(`Missing atomic weight for ${el}`);
+      mm += AW[el]*c[el];
+    }
+    return mm;
+  }
+
+  // Split reaction string → raw species (preserves written coeffs if present)
+  function splitReaction(s){
+    const [L,R] = s.replace(/→/g,'->').split('->').map(x=>x.trim());
+    const left  = L.split('+').map(x=>x.trim()).filter(Boolean);
+    const right = R.split('+').map(x=>x.trim()).filter(Boolean);
+    return { left, right };
+  }
+
+  // Use your balancer when possible; fall back to written coeffs
+  function balanceReaction(s){
+    try{
+      const out = window.LocalChem.localSolveEquation(s);
+      // expect out like { species:[...], coeffs:[...] } or similar
+      if(out && out.species && out.coeffs && out.species.length===out.coeffs.length){
+        return { species: out.species, coeffs: out.coeffs };
+      }
+    }catch(e){/* fallback */ }
+    // fallback: parse written coeffs like "2 H2O"
+    const {left,right} = splitReaction(s);
+    const all = left.concat(right);
+    const species = [], coeffs = [];
+    for(const term of all){
+      const m = term.match(/^\s*(\d+)\s*(.*)$/);
+      if(m){ coeffs.push(+m[1]); species.push(m[2]); }
+      else { coeffs.push(1); species.push(term); }
+    }
+    return { species, coeffs };
+  }
+
+  const R = 0.082057; // L·atm·K^-1·mol^-1
+
+  function stoichCompute({ eq, knownSp, targetSp, knownMode, knownVals, outMode, outVals }){
+    // 1) get balanced species+coeffs
+    const { species, coeffs } = balanceReaction(eq);
+    const idxK = species.findIndex(s=> s.replace(/\s+/g,'') === knownSp.replace(/\s+/g,''));
+    const idxT = species.findIndex(s=> s.replace(/\s+/g,'') === targetSp.replace(/\s+/g,''));
+    if(idxK<0 || idxT<0) throw Error("Selected species not found in reaction");
+
+    // 2) moles of known
+    let nKnown = 0;
+    if(knownMode === 'mol'){
+      nKnown = +knownVals.n;
+    } else if(knownMode === 'mass'){
+      const mm = molarMass(knownSp);
+      nKnown = (+knownVals.g) / mm;
+    } else if(knownMode === 'solution'){
+      nKnown = (+knownVals.M) * (+knownVals.VL);
+    } else if(knownMode === 'gas'){
+      const P = +knownVals.P, V = +knownVals.V, T = +knownVals.T;
+      nKnown = (P*V)/(R*T);
+    } else { throw Error("Unknown known mode"); }
+    if(!isFinite(nKnown) || nKnown<=0) throw Error("Known amount is invalid");
+
+    // 3) stoichiometric ratio
+    const nk = coeffs[idxK], nt = coeffs[idxT];
+    const nTarget = nKnown * (nt/nk);
+
+    // 4) convert to output
+    let value = 0, unit = '';
+    if(outMode === 'mol'){
+      value = nTarget; unit = 'mol';
+    } else if(outMode === 'mass'){
+      value = nTarget * molarMass(targetSp); unit = 'g';
+    } else if(outMode === 'solution'){
+      const M = +outVals.M; if(!(M>0)) throw Error("Output molarity M is required");
+      value = nTarget / M; unit = 'L';
+    } else if(outMode === 'gas'){
+      const P = +outVals.P, T = +outVals.T;
+      if(!(P>0 && T>0)) throw Error("Output P and T are required");
+      value = (nTarget*R*T)/P; unit = 'L';
+    } else { throw Error("Unknown output mode"); }
+
+    return {
+      species, coeffs, nKnown, nTarget, value, unit
+    };
+  }
+
+  return { molarMass, parseFormula, balanceReaction, stoichCompute };
+})();
   
   window.LocalChem = {
   localSolveEquation,
   localDrawElement,
   localSolveVSEPR,
-  localAufbau: LC_Aufbau.localAufbau
+  localAufbau: LC_Aufbau.localAufbau,
+  stoich: LC_Stoich
 };
 })();
 </script>
@@ -924,6 +1069,7 @@ function buildDiagram(occFull, Z, useSh = true){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
