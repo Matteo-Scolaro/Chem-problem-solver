@@ -675,22 +675,21 @@ const LC_Aufbau = (()=>{
     return LORDER[a.slice(-1)] - LORDER[b.slice(-1)];
   }
 
-  // NEW: diagram built from either FULL occ or (occ - core) depending on useSh
-  function buildDiagram(occFull, Z, useSh=true){
-    const rows = [];
-    const core = useSh ? fillAufbau(lastNoble(Z).z) : {};
-    // Build rows only for subshells that have electrons beyond the selected core
-    const keys = subshellOrder
-      .filter(sp => (occFull[sp]||0) - (core[sp]||0) > 0)
-      .sort(sortByShell);
+// build rows in Madelung order, subtracting the core if shorthand is ON
+function buildDiagram(occFull, Z, useSh = true){
+  const rows = [];
+  const core = useSh ? fillAufbau(lastNoble(Z).z) : {};
 
-    for (const sp of keys){
-      const beyond = (occFull[sp]||0) - (core[sp]||0);
+  // keep subshells in subshellOrder (Madelung) – matches shorthand sequence
+  for (const sp of subshellOrder){
+    const beyond = (occFull[sp] || 0) - (core[sp] || 0);
+    if (beyond > 0){
       const nboxes = boxes[sp.slice(-1)];
       rows.push({ sp, boxes: boxesFor(beyond, nboxes) });
     }
-    return rows;
   }
+  return rows;
+}
 
   // NEW: HTML like your picture — one big rectangle per subshell, inner boxes
   function diagramHTML(rows){
@@ -822,6 +821,7 @@ const LC_Aufbau = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
