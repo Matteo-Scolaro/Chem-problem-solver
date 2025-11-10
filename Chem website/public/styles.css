@@ -93,24 +93,38 @@ a, a:link, a:visited, a:hover, a:active, a:focus {
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 
-/* ==== Orbital diagram (Aufbau) ==== */
-.orbital-diagram { margin-top: 1rem; }
-.orbital-diagram .diagram { display: grid; gap: .5rem; }
-.orbital-diagram .subshell { display: flex; align-items: center; gap: .5rem; }
-.orbital-diagram .label { width: 3.2rem; opacity: .9; }
-.orbital-diagram .box {
+/* ==== Orbital diagram (Aufbau) – boxed like textbook ==== */
+.orb-diagram { display: grid; gap: 1rem; }
+.orb-row { display: flex; align-items: flex-start; gap: .75rem; }
+.orb-label {
+  width: 2.8rem;
+  text-align: right;
+  opacity: .9;
+  font-variant-numeric: tabular-nums;
+  padding-top: .15rem;
+}
+.orb-group {
   display: inline-flex;
-  justify-content: center;
+  gap: .35rem;
+  padding: .35rem .4rem;
+  border: 1.5px solid rgba(255,255,255,.7);
+  border-radius: .3rem;
+  background: rgba(255,255,255,.02);
+}
+.orb-box {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1.5px solid rgba(255,255,255,.7);
+  border-radius: .2rem;
+  display: inline-flex;
   align-items: center;
-  width: 2.2rem; height: 1.6rem;
-  border: 1px solid rgba(255,255,255,.6);
-  border-radius: .25rem;
-  font-size: 1.05rem;
+  justify-content: center;
+  font-size: 1.25rem;
   line-height: 1;
   user-select: none;
 }
-.tool-form .chk { display: inline-flex; gap: .5rem; align-items: center; }
-.orbital-diagram .error { color: #ffb3b3; }
-.orbital-diagram .label { width: 3.4rem; }
-.orbital-diagram .box { width: 2.4rem; height: 1.7rem; }
+@media (max-width: 640px){
+  .orb-box { width: 1.9rem; height: 1.9rem; font-size: 1.1rem; }
+  .orb-label { width: 2.4rem; }
+}
 
