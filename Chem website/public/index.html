@@ -642,59 +642,81 @@ const LC_Aufbau = (()=>{
     return subshellOrder.filter(k=>occ[k]>0).map(k=>`${k}<sup>${occ[k]}</sup>`).join(" ");
   }
   function lastNoble(Z){ let base={z:0,tag:""}; for(const n of noble) if(n.z<=Z) base=n; return base; }
-  function shorthand(occ,Z){
-    const base=lastNoble(Z); if(base.z===0) return configString(occ);
-    let left=Z-base.z, tail=[];
-    for(const sp of subshellOrder){
-      const v=occ[sp]||0; if(left<=0) break;
-      if(v>0){ const take=Math.min(v,left); tail.push(`${sp}<sup>${take}</sup>`); left-=take; }
+ // --- helper: build a full occupancy up to Z (already have fillAufbau) ---
+
+  // NEW: compute shorthand by subtracting the noble-gas core OCCUPANCY (correct)
+  function shorthand(occFull, Z){
+    const base = lastNoble(Z);
+    if (base.z === 0) return configString(occFull);
+    const core = fillAufbau(base.z);           // occupancy of the core
+    // diff = electrons beyond core, in each subshell
+    const tail = [];
+    for (const sp of subshellOrder) {
+      const v = (occFull[sp] || 0) - (core[sp] || 0);
+      if (v > 0) tail.push(`${sp}<sup>${v}</sup>`);
     }
     return `${base.tag} ${tail.join(" ")}`.trim();
   }
 
-  function buildDiagram(occ,Z,useSh=true){
-    const startZ = useSh ? lastNoble(Z).z : 0;
-    let left = Z-startZ; const rows=[];
-    for(const sp of subshellOrder){
-      const cap = capacity[sp.slice(-1)];
-      const total = Math.min(cap,left);
-      if(total<=0 && useSh) { /* skip core rows */ }
-      else if((occ[sp]||0)>0){
-        const nboxes = boxes[sp.slice(-1)];
-        const ups = Math.min(total,nboxes);
-        const downs = Math.max(0,total-ups);
-        const boxesArr = Array.from({length:nboxes},(_,i)=>{
-          if(i<ups && i<downs) return ["up","down"];
-          if(i<ups) return ["up"];
-          if(i<downs-ups) return ["down"];
-          return [];
-        });
-        rows.push({ sp, boxes: boxesArr });
-      }
-      left -= Math.max(0,total);
-      if(left<=0 && useSh) break;
+  // --- Hund filling into boxes: first ↑ one per box, then pair with ↓ ---
+  function boxesFor(total, nboxes){
+    const arr = Array.from({length: nboxes}, () => []);
+    let e = total;
+    for (let i = 0; i < nboxes && e > 0; i++, e--) arr[i].push('up');   // all ↑
+    for (let i = 0; i < nboxes && e > 0; i++, e--) arr[i].push('down'); // then ↓
+    return arr;
+  }
+
+  // display order: by principal n ascending, then s,p,d,f
+  const LORDER = { s:0, p:1, d:2, f:3 };
+  function sortByShell(a, b){
+    const na = +a[0], nb = +b[0];
+    if (na !== nb) return na - nb;
+    return LORDER[a.slice(-1)] - LORDER[b.slice(-1)];
+  }
+
+  // NEW: diagram built from either FULL occ or (occ - core) depending on useSh
+  function buildDiagram(occFull, Z, useSh=true){
+    const rows = [];
+    const core = useSh ? fillAufbau(lastNoble(Z).z) : {};
+    // Build rows only for subshells that have electrons beyond the selected core
+    const keys = subshellOrder
+      .filter(sp => (occFull[sp]||0) - (core[sp]||0) > 0)
+      .sort(sortByShell);
+
+    for (const sp of keys){
+      const beyond = (occFull[sp]||0) - (core[sp]||0);
+      const nboxes = boxes[sp.slice(-1)];
+      rows.push({ sp, boxes: boxesFor(beyond, nboxes) });
     }
     return rows;
   }
 
+  // NEW: HTML like your picture — one big rectangle per subshell, inner boxes
   function diagramHTML(rows){
     const rowHtml = rows.map(r=>{
-      const b = r.boxes.map(pair=>{
-        const arr = pair.map(a=>a==="up"?"↑":"↓").join("");
-        return `<div class="box">${arr}</div>`;
-      }).join("");
-      return `<div class="subshell"><span class="label">${r.sp}</span>${b}</div>`;
-    }).join("");
-    return `<div class="diagram">${rowHtml}</div>`;
+      const inner = r.boxes.map(pair=>{
+        const arrows = pair.map(a => a === 'up' ? '↑' : '↓').join('');
+        return `<div class="orb-box">${arrows}</div>`;
+      }).join('');
+      return `
+        <div class="orb-row">
+          <div class="orb-label">${r.sp}</div>
+          <div class="orb-group">${inner}</div>
+        </div>
+      `;
+    }).join('');
+    return `<div class="orb-diagram">${rowHtml}</div>`;
   }
 
-  function localAufbau(input,useSh=true){
+  // NEW: use the fixed pieces
+  function localAufbau(input, useSh=true){
     const { z } = parseElement(input);
     const occ = fillAufbau(z);
     return {
       configFullHtml: configString(occ),
-      shorthandHtml:  shorthand(occ,z),
-      diagramHtml:    diagramHTML(buildDiagram(occ,z,useSh))
+      shorthandHtml:  shorthand(occ, z),
+      diagramHtml:    diagramHTML(buildDiagram(occ, z, useSh))
     };
   }
 
@@ -800,6 +822,7 @@ const LC_Aufbau = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
