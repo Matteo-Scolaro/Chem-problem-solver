@@ -33,6 +33,7 @@ function renderRoute(){
   if (h.startsWith('#/vsepr'))return show('vsepr');
   if (h.startsWith('#/draw')) return show('draw');
   if (h.startsWith('#/aufbau')) return show('aufbau');
+  if (h.startsWith('#/stoich')) return show('stoich');
   show('home');
 }
 window.addEventListener('hashchange', renderRoute);
@@ -166,3 +167,99 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
   btn && btn.addEventListener('click', run);
   form && form.addEventListener('submit', run); // enter key still works
 })();
+
+// ===== Stoichiometry wiring =====
+(function(){
+  const eq     = document.getElementById('st-eq');
+  const knownS = document.getElementById('st-known');
+  const targetS= document.getElementById('st-target');
+  const parseB = document.getElementById('st-parse');
+  const runB   = document.getElementById('st-run');
+
+  const knownMode = document.getElementById('st-known-mode');
+  const outMode   = document.getElementById('st-out-mode');
+  const result    = document.getElementById('st-result');
+
+  // mode containers
+  const knownFields = document.getElementById('st-known-fields');
+  const outFields   = document.getElementById('st-out-fields');
+
+  function showMode(container, mode){
+    container.querySelectorAll('.mode').forEach(d=>d.hidden=true);
+    container.querySelectorAll(`.mode-${mode}`).forEach(d=>d.hidden=false);
+  }
+
+  knownMode.addEventListener('change', ()=> showMode(knownFields, knownMode.value));
+  outMode.addEventListener('change',   ()=> showMode(outFields,   outMode.value));
+  showMode(knownFields, knownMode.value);
+  showMode(outFields, outMode.value);
+
+  function populateSpecies(list){
+    knownS.innerHTML = ''; targetS.innerHTML = '';
+    list.forEach(s=>{
+      const o1 = document.createElement('option'); o1.value=o1.textContent=s;
+      const o2 = document.createElement('option'); o2.value=o2.textContent=s;
+      knownS.appendChild(o1); targetS.appendChild(o2);
+    });
+    if(list.length>1) targetS.selectedIndex = 1;
+  }
+
+  function doParse(){
+    try{
+      const out = window.LocalChem.stoich.balanceReaction(eq.value);
+      populateSpecies(out.species);
+      result.innerHTML = `<div>Balanced species detected: <code>${out.species.join(' | ')}</code></div>`;
+    }catch(err){
+      result.innerHTML = `<div class="error">${err.message}</div>`;
+    }
+  }
+
+  function doRun(){
+    try{
+      const km = knownMode.value, om = outMode.value;
+
+      const knownVals = {
+        n:  +document.getElementById('st-known-mol').value,
+        g:  +document.getElementById('st-known-g').value,
+        M:  +document.getElementById('st-known-M').value,
+        VL: +document.getElementById('st-known-VL').value,
+        P:  +document.getElementById('st-P').value,
+        V:  +document.getElementById('st-V').value,
+        T:  +document.getElementById('st-T').value
+      };
+      const outVals = {
+        M: +document.getElementById('st-out-M').value,
+        P: +document.getElementById('st-out-P').value,
+        T: +document.getElementById('st-out-T').value
+      };
+
+      const res = window.LocalChem.stoich.stoichCompute({
+        eq: eq.value,
+        knownSp: knownS.value,
+        targetSp: targetS.value,
+        knownMode: km,
+        knownVals,
+        outMode: om,
+        outVals
+      });
+
+      const ratio = `${res.nKnown.toFixed(6)} mol × (${res.coeffs[res.species.indexOf(targetS.value)]}/${res.coeffs[res.species.indexOf(knownS.value)]})`;
+      result.innerHTML = `
+        <div><b>Result:</b> ${res.value.toPrecision(6)} ${res.unit}</div>
+        <div class="muted">Moles(target) = ${ratio}</div>
+      `;
+    }catch(err){
+      result.innerHTML = `<div class="error">${err.message}</div>`;
+    }
+  }
+
+  parseB && parseB.addEventListener('click', doParse);
+  runB && runB.addEventListener('click', doRun);
+
+  // convenience examples
+  if (eq && !eq.value) eq.value = 'C3H8 + O2 -> CO2 + H2O';
+})();
+
+
+
+
