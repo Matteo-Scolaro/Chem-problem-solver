@@ -154,6 +154,8 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
       cfg.innerHTML = res.configFullHtml;
       sh.innerHTML  = res.shorthandHtml;
       dia.innerHTML = res.diagramHtml;
+      const wrap = dia.querySelector('.orb-diagram');
+if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-reverse', wrap.style.gap = '1rem';
     }catch(err){
       cfg.innerHTML = '';
       sh.innerHTML  = '';
