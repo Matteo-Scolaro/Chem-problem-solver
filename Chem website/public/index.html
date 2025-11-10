@@ -69,7 +69,10 @@
     <h3>Element Drawings</h3>
     <p>Bohr / Bohr-Rutherford / Lewis (with electrons).</p>
   </a>
-  <a class="nav-card" href="#/aufbau">Aufbau (Orbital Diagram)</a>
+  <a class="nav-card" href="#/aufbau" data-view="aufbau">
+  <h3>Aufbau (Orbital Diagram)</h3>
+  <p>Electron configuration + orbital boxes (↑/↓, Hund).</p>
+</a>
 </section>
     
     <!-- Solvers -->
@@ -121,29 +124,35 @@
         <p id="draw-notes" class="muted" style="margin-top:.6rem;"></p>
       </div>
         </section>
-    </section>
 
+<!-- Aufbau -->
 <section id="aufbau" class="view" hidden>
-  <h2>Aufbau (Orbital Diagram)</h2>
-  <form id="aufbau-form" class="tool-form">
-    <label>
-      Element (symbol or Z)
-      <input id="aufbau-input" type="text" placeholder="K or 19" required>
-    </label>
-    <label class="chk">
-      <input id="aufbau-shorthand" type="checkbox" checked>
-      Use noble-gas shorthand
-    </label>
-    <button type="submit">Build</button>
-  </form>
+  <button class="back"><a href="/" style="color:inherit;text-decoration:none;">← Back</a></button>
+  <div class="card solver">
+    <h3>Aufbau (Orbital Diagram)</h3>
+    <p class="muted">Enter element symbol or atomic number. Uses noble-gas shorthand and applies common d-block exceptions (Cr, Cu, Mo, Ag, Pd...).</p>
 
-  <div class="result">
-    <div><strong>Configuration:</strong> <span id="aufbau-config"></span></div>
-    <div><strong>Shorthand:</strong> <span id="aufbau-sh"></span></div>
+    <div class="form">
+      <input id="aufbau-input" type="text" placeholder="e.g., K or 19">
+      <label class="chk">
+        <input id="aufbau-shorthand" type="checkbox" checked>
+        Use noble-gas shorthand
+      </label>
+      <button type="button" id="aufbau-run" class="primary">Build</button>
+    </div>
+
+    <div class="result" id="aufbau-text">
+      <div><b>Configuration:</b> <span id="aufbau-config"></span></div>
+      <div><b>Shorthand:</b> <span id="aufbau-sh"></span></div>
+    </div>
+
+    <div id="aufbau-diagram" class="svgwrap" style="min-height:160px;">
+      <!-- orbital boxes render here -->
+    </div>
   </div>
-
-  <div id="aufbau-diagram" class="orbital-diagram"></div>
 </section>
+      
+    </section>
     
   </main>
 
@@ -570,19 +579,18 @@ async function localSolveVSEPR(input){
     notes: dH.note,
     mechanism: pred.mechanism
   };
-}
+} 
 
-<script>
 /* ========= LocalChem: Aufbau / Orbital Diagrams ========= */
-(function(){
+const LC_Aufbau = (()=>{
+
   const subshellOrder = [
     "1s","2s","2p","3s","3p","4s","3d","4p","5s","4d","5p",
     "6s","4f","5d","6p","7s","5f","6d","7p"
   ];
   const capacity = { s:2, p:6, d:10, f:14 };
-  const boxes =   { s:1, p:3, d:5,  f:7  };
+  const boxes    = { s:1, p:3, d:5,  f:7  };
 
-  // Symbols → Z (1..118)
   const SYM = [
     "", "H","He","Li","Be","B","C","N","O","F","Ne","Na","Mg","Al","Si","P","S","Cl","Ar",
     "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr",
@@ -592,7 +600,7 @@ async function localSolveVSEPR(input){
     "Fr","Ra","Ac","Th","Pa","U","Np","Pu","Am","Cm","Bk","Cf","Es","Fm","Md","No","Lr",
     "Rf","Db","Sg","Bh","Hs","Mt","Ds","Rg","Cn","Nh","Fl","Mc","Lv","Ts","Og"
   ];
-  const ZOF = Object.fromEntries(SYM.map((s,i)=>[s,i]).filter(([s,i])=>s));
+  const ZOF = Object.fromEntries(SYM.map((s,i)=>[s,i]).filter(([s])=>s));
 
   const noble = [
     {z:2,  tag:"[He]"},
@@ -605,95 +613,60 @@ async function localSolveVSEPR(input){
   ];
 
   function parseElement(inp){
-    if(!inp) throw Error("Empty input");
-    const s = String(inp).trim();
-    if(/^\d+$/.test(s)) {
-      const z = +s;
-      if(z<1 || z>118) throw Error("Z out of range");
-      return { z, symbol: SYM[z] };
-    }
+    const s = String(inp||"").trim();
+    if(!s) throw Error("Empty input");
+    if(/^\d+$/.test(s)){ const z=+s; if(z<1||z>118) throw Error("Z out of range"); return { z, symbol: SYM[z] }; }
     const cap = s[0].toUpperCase() + (s[1]?.toLowerCase()||"");
-    const z = ZOF[cap];
-    if(!z) throw Error("Unknown element symbol");
+    const z = ZOF[cap]; if(!z) throw Error("Unknown element symbol");
     return { z, symbol: cap };
   }
 
   function fillAufbau(Z){
-    // raw filling by order
-    let remaining = Z;
-    const occ = {};
+    let remaining=Z; const occ={};
     for(const sp of subshellOrder){
       if(remaining<=0) break;
-      const l = sp.slice(-1); const cap = capacity[l];
-      const put = Math.min(cap, remaining);
-      occ[sp] = put;
-      remaining -= put;
+      const l=sp.slice(-1), cap=capacity[l], put=Math.min(cap,remaining);
+      occ[sp]=put; remaining-=put;
     }
-    // d-block common exceptions (make d5 or d10 by borrowing 1 from same-period s)
-    const adjust = () => {
-      for(const sp of ["3d","4d","5d"]){
-        if(!occ[sp]) continue;
-        const s = { "3d":"4s", "4d":"5s", "5d":"6s" }[sp];
-        const val = occ[sp];
-        if(occ[s]>0 && (val===4 || val===9)){
-          occ[sp] = val+1;
-          occ[s]  = occ[s]-1;
-        }
-      }
-      // Pd special case: 4d10 5s0
-      if(occ["4d"]===9 && occ["5s"]===1){ occ["4d"]=10; occ["5s"]=0; }
-    };
-    adjust();
-    return occ; // e.g. { "1s":2, "2s":2, ... }
+    // common d-block exceptions (d4→d5 s1, d9→d10 s1; Pd 4d10 5s0)
+    for(const sp of ["3d","4d","5d"]){
+      const sMap={ "3d":"4s", "4d":"5s", "5d":"6s" };
+      const s = sMap[sp]; const v = occ[sp]||0;
+      if((v===4 || v===9) && (occ[s]||0)>0){ occ[sp]=v+1; occ[s]=occ[s]-1; }
+    }
+    if(occ["4d"]===9 && occ["5s"]===1){ occ["4d"]=10; occ["5s"]=0; }
+    return occ;
   }
 
   function configString(occ){
     return subshellOrder.filter(k=>occ[k]>0).map(k=>`${k}<sup>${occ[k]}</sup>`).join(" ");
   }
-
-  function lastNoble(Z){
-    let base = {z:0,tag:""};
-    for(const n of noble) if(n.z<=Z) base=n;
-    return base;
-  }
-
-  function shorthand(occ, Z){
-    const base = lastNoble(Z);
-    if(base.z===0) return configString(occ);
-    // remove core
-    let left = Z - base.z;
-    const tail = [];
+  function lastNoble(Z){ let base={z:0,tag:""}; for(const n of noble) if(n.z<=Z) base=n; return base; }
+  function shorthand(occ,Z){
+    const base=lastNoble(Z); if(base.z===0) return configString(occ);
+    let left=Z-base.z, tail=[];
     for(const sp of subshellOrder){
-      const v = occ[sp]||0;
-      if(left<=0) break;
-      if(v>0){
-        const take = Math.min(v, left);
-        tail.push(`${sp}<sup>${take}</sup>`);
-        left -= take;
-      }
+      const v=occ[sp]||0; if(left<=0) break;
+      if(v>0){ const take=Math.min(v,left); tail.push(`${sp}<sup>${take}</sup>`); left-=take; }
     }
     return `${base.tag} ${tail.join(" ")}`.trim();
   }
 
-  function buildDiagram(occ, Z, useSh=true){
-    // produce rows (from last noble gas onward if shorthand)
+  function buildDiagram(occ,Z,useSh=true){
     const startZ = useSh ? lastNoble(Z).z : 0;
-    let left = Z - startZ;
-    const rows = [];
+    let left = Z-startZ; const rows=[];
     for(const sp of subshellOrder){
       const cap = capacity[sp.slice(-1)];
-      const total = Math.min(cap, left);
-      if(total<=0 && useSh) { /* skip core */ }
-      else if((occ[sp]||0) > 0){
-        const n = +sp[0], l=sp.slice(-1);
-        const nboxes = boxes[l];
-        // Hund filling: first all ↑ then add ↓
-        const ups = Math.min(total, nboxes);
-        const downs = Math.max(0, total-ups);
-        const boxesArr = Array.from({length:nboxes}, (_,i)=>{
-          if(i<ups && i<downs) return ["up","down"]; // full
+      const total = Math.min(cap,left);
+      if(total<=0 && useSh) { /* skip core rows */ }
+      else if((occ[sp]||0)>0){
+        const nboxes = boxes[sp.slice(-1)];
+        const ups = Math.min(total,nboxes);
+        const downs = Math.max(0,total-ups);
+        const boxesArr = Array.from({length:nboxes},(_,i)=>{
+          if(i<ups && i<downs) return ["up","down"];
           if(i<ups) return ["up"];
-          if(i<downs-ups) return ["down"]; // seldom used
+          if(i<downs-ups) return ["down"];
           return [];
         });
         rows.push({ sp, boxes: boxesArr });
@@ -705,10 +678,9 @@ async function localSolveVSEPR(input){
   }
 
   function diagramHTML(rows){
-    // one row per subshell, each row: label + N boxes
     const rowHtml = rows.map(r=>{
       const b = r.boxes.map(pair=>{
-        const arr = pair.map(a=> a==="up" ? "↑" : "↓").join("");
+        const arr = pair.map(a=>a==="up"?"↑":"↓").join("");
         return `<div class="box">${arr}</div>`;
       }).join("");
       return `<div class="subshell"><span class="label">${r.sp}</span>${b}</div>`;
@@ -716,28 +688,25 @@ async function localSolveVSEPR(input){
     return `<div class="diagram">${rowHtml}</div>`;
   }
 
-  function localAufbau(input, useShorthand=true){
-    const { z, symbol } = parseElement(input);
+  function localAufbau(input,useSh=true){
+    const { z } = parseElement(input);
     const occ = fillAufbau(z);
-    const full = configString(occ);
-    const sh   = shorthand(occ, z);
-    const rows = buildDiagram(occ, z, useShorthand);
     return {
-      z, symbol,
-      configFullHtml: full,
-      shorthandHtml: sh,
-      rows,
-      diagramHtml: diagramHTML(rows)
+      configFullHtml: configString(occ),
+      shorthandHtml:  shorthand(occ,z),
+      diagramHtml:    diagramHTML(buildDiagram(occ,z,useSh))
     };
   }
 
-  // expose
-  window.LocalChem = window.LocalChem || {};
-  window.LocalChem.localAufbau = localAufbau;
+  return { localAufbau };
 })();
-</script>
   
-  window.LocalChem = { localSolveEquation, localDrawElement, localSolveVSEPR, localAufbau };
+  window.LocalChem = {
+  localSolveEquation,
+  localDrawElement,
+  localSolveVSEPR,
+  localAufbau: LC_Aufbau.localAufbau
+};
 })();
 </script>
 
@@ -831,6 +800,7 @@ async function localSolveVSEPR(input){
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
