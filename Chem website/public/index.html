@@ -232,17 +232,33 @@
 </div>
 
       <!-- Output conditions -->
-      <div id="st-out-fields">
-        <div class="mode mode-solution" hidden>
-          <div class="grid1">
-            <div><label>M (mol/L)</label><input id="st-out-M" type="number" step="any" placeholder="e.g., 0.50"></div>
-          </div>
-        </div>
-        <div class="mode mode-gas" hidden>
-  <div class="grid3">
-    <div><label>P (kPa)</label><input id="st-out-P" type="number" step="any" placeholder="e.g., 101.3"></div>
-    <div><label>T (K)</label><input id="st-out-T" type="number" step="any" placeholder="e.g., 298"></div>
-    <div style="align-self:end;opacity:.8;">Uses R = 8.314 kPa·L·mol⁻¹·K⁻¹</div>
+      <!-- Output conditions -->
+<div id="st-out-fields">
+  <!-- Output as: Solution volume (L at M) -->
+  <div class="mode mode-solution" hidden>
+    <div class="grid1">
+      <div>
+        <label>M (mol/L)</label>
+        <input id="st-out-M" type="number" step="any" placeholder="e.g., 0.50">
+      </div>
+    </div>
+  </div>
+
+  <!-- Output as: Gas volume (L at P,T) -->
+  <div class="mode mode-gas" hidden>
+    <div class="grid3">
+      <div>
+        <label>P (kPa)</label>
+        <input id="st-out-P" type="number" step="any" placeholder="e.g., 101.3">
+      </div>
+      <div>
+        <label>T (K)</label>
+        <input id="st-out-T" type="number" step="any" placeholder="e.g., 298">
+      </div>
+      <div style="align-self:end;opacity:.8;">
+        Uses R = 8.314 kPa·L·mol⁻¹·K⁻¹
+      </div>
+    </div>
   </div>
 </div>
       </div>
@@ -1114,6 +1130,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
