@@ -162,11 +162,14 @@
 
   <div class="card solver">
     <h3>Stoichiometry</h3>
-    <p class="muted">Enter a reaction (e.g., <code>C3H8 + O2 -> CO2 + H2O</code>). If unbalanced, it will be balanced automatically.</p>
+    <p class="muted">
+  Enter a reaction (e.g., <code>C3H8 + O2 -> CO2 + H2O</code>).
+  <b>Click “Parse reaction”</b> to load/update the species list; only then is the new reaction used.
+</p>
 
     <div class="form">
       <label>Reaction</label>
-      <input id="st-eq" type="text" placeholder="e.g., C3H8 + O2 -> CO2 + H2O">
+      <input id="st-eq" type="text">
 
       <div class="grid2">
         <div>
@@ -1069,6 +1072,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
