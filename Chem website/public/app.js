@@ -22,7 +22,7 @@ function show(id){
   // If you want the tool to appear at the top of the viewport, use:
   if (!isHome) {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ block: 'start', behavior: 'instant' });
+    if (el) el.scrollIntoView({ block: 'start', behavior: 'auto' });
   }
 }
 
@@ -258,9 +258,8 @@ function doParse(){
   parseB && parseB.addEventListener('click', doParse);
   runB && runB.addEventListener('click', doRun);
 
-  // at the top of the wiring block (after grabbing DOM refs)
-const runB   = document.getElementById('st-run');
-runB && (runB.disabled = true);
+// disable Compute until a successful Parse
+ if (runB) runB.disabled = true;
 
 // when reaction changes, force re-parse
 eq && eq.addEventListener('input', ()=> {
