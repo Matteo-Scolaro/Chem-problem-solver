@@ -571,67 +571,6 @@ function countBonds(formula){
     return {eg, mg, ed};
   }
 
-  // ===== VSEPR angle heuristics (kPa unrelated) =====
-// domains = total electron domains around the central atom
-// lp = lone pairs; bp = bonding pairs (domains - lp)
-function vseprAngle(domains, lp, bp){
-  // Two domains: linear
-  if (domains === 2) return 180;
-
-  // Three domains (trigonal planar baseline 120°)
-  if (domains === 3){
-    if (lp === 0) return 120;                // AX3
-    if (lp === 1 && bp === 2) return 117;    // AX2E  (SO2-type bent)
-  }
-
-  // Four domains (tetra baseline 109.5°)
-  if (domains === 4){
-    if (lp === 0) return 109.5;              // AX4
-    if (lp === 1 && bp === 3) return 107;    // AX3E  (NH3 trig pyramidal)
-    if (lp === 2 && bp === 2) return 104.5;  // AX2E2 (H2O bent)
-  }
-
-  // Five domains (trig bipyramidal baseline ~120/90)
-  if (domains === 5){
-    if (lp === 0) return 120;                // report the equatorial average
-    if (lp === 1 && bp === 4) return 102;    // seesaw (approx.)
-    if (lp === 2 && bp === 3) return 90;     // T-shaped
-    if (lp === 3 && bp === 2) return 180;    // linear
-  }
-
-  // Six domains (octa baseline 90°)
-  if (domains === 6){
-    if (lp === 0) return 90;                 // octahedral
-    if (lp === 1 && bp === 5) return 90;     // square pyramidal (equatorial 90)
-    if (lp === 2 && bp === 4) return 90;     // square planar
-  }
-
-  // Fallback
-  return 109.5;
-}
-
-const bp = domains - lonePairs;
-
-// FIX: correct bond angle for lone-pair cases (e.g., H2O)
-const bondAngle = vseprAngle(domains, lonePairs, bp);
-
-// OPTIONAL: append “distorted tetrahedral” for AX2E2 (water-type)
-let molecularLabel = molecularGeometry; // whatever name you computed
-if (domains === 4 && lonePairs === 2 && molecularLabel.toLowerCase() === 'bent'){
-  molecularLabel = 'bent (distorted tetrahedral)';
-}
-
-// include these in the object you return / display
-return {
-  electronGeometry,
-  molecularGeometry: molecularLabel,
-  domains,
-  lonePairs,
-  bondAngle,                     // <- use this number for the text readout
-  hybridization,
-  // … your other fields
-};
-  
   function drawVSEPR(mg){
     const C="stroke='#fff' stroke-width='2' fill='none'", F="fill='#fff'";
     const center=`<circle ${F} cx="200" cy="150" r="6"/>`;
@@ -1127,8 +1066,6 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
-
-
 
 
 
