@@ -237,6 +237,45 @@ select:focus {
 /* Prevent those thin “pill” artifacts beside labels */
 #stoich .form > * { min-width: 0; }
 
+/* ==== DARK SELECTS FOR ALL DROPDOWNS ==== */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: .6rem;
+  padding: .55rem .75rem;
+  font: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* custom arrow */
+select::-ms-expand { display: none; }
+
+select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.6) 50%),
+    linear-gradient(135deg, rgba(255,255,255,.6) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.4rem) center,
+    calc(100% - 1.15rem) center;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+select:hover {
+  background-color: rgba(255,255,255,.13);
+}
+select:focus {
+  outline: none;
+  border-color: rgba(255,255,255,.35);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.15);
+}
+
 
 
 
