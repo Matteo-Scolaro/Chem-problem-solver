@@ -196,4 +196,53 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(255,255,255,.1);
 }
 
+/* === Stoichiometry polish === */
+#stoich .form { display: grid; gap: .9rem; margin-bottom: 1.25rem; }
+
+#stoich label { display: block; margin-bottom: .25rem; opacity: .9; }
+
+/* Inputs/selects full width and dark */
+#stoich input[type="text"],
+#stoich input[type="number"],
+#stoich select {
+  width: 100%;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: .6rem;
+  padding: .5rem .7rem;
+}
+
+/* Stack the “mode” areas vertically (open downward) */
+#stoich .grid1,
+#stoich .grid2,
+#stoich .grid3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .75rem;
+}
+
+/* Keep buttons from looking inconsistent */
+#stoich button:not(.primary) {
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: .6rem;
+  padding: .55rem .8rem;
+}
+#stoich button:not(.primary):hover {
+  background: rgba(255,255,255,.15);
+}
+
+/* Prevent those thin “pill” artifacts beside labels */
+#stoich .form > * { min-width: 0; }
+
+
+
+
+
+
+
+
+
 
