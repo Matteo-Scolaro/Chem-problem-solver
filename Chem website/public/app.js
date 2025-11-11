@@ -204,15 +204,17 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
     if(list.length>1) targetS.selectedIndex = 1;
   }
 
-  function doParse(){
-    try{
-      const out = window.LocalChem.stoich.balanceReaction(eq.value);
-      populateSpecies(out.species);
-      result.innerHTML = `<div>Balanced species detected: <code>${out.species.join(' | ')}</code></div>`;
-    }catch(err){
-      result.innerHTML = `<div class="error">${err.message}</div>`;
-    }
+function doParse(){
+  try{
+    const out = window.LocalChem.stoich.balanceReaction(eq.value);
+    populateSpecies(out.species);
+    result.innerHTML = `<div>Balanced species detected: <code>${out.species.join(' | ')}</code></div>`;
+    runB.disabled = false;     // ← enable compute now
+  }catch(err){
+    result.innerHTML = `<div class="error">${err.message}</div>`;
+    runB.disabled = true;
   }
+}
 
   function doRun(){
     try{
@@ -256,9 +258,22 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
   parseB && parseB.addEventListener('click', doParse);
   runB && runB.addEventListener('click', doRun);
 
-  // convenience examples
-  if (eq && !eq.value) eq.value = 'C3H8 + O2 -> CO2 + H2O';
+  // at the top of the wiring block (after grabbing DOM refs)
+const runB   = document.getElementById('st-run');
+runB && (runB.disabled = true);
+
+// when reaction changes, force re-parse
+eq && eq.addEventListener('input', ()=> {
+  runB.disabled = true;
+  // clear dropdowns so it's obvious they need to parse
+  document.getElementById('st-known').innerHTML = '';
+  document.getElementById('st-target').innerHTML = '';
+});
+
+  
 })();
+
+
 
 
 
