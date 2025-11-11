@@ -133,3 +133,30 @@ a, a:link, a:visited, a:hover, a:active, a:focus {
   .orb-label { width: 2.4rem; }
 }
 
+/* ==== Stoichiometry card polish ==== */
+#stoich .form { margin-bottom: 1.25rem; }                 /* more space above Result */
+
+#stoich input[type="text"],
+#stoich input[type="number"],
+#stoich select {
+  background: rgba(255,255,255,.06);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: .5rem;
+}
+#stoich input::placeholder { color: rgba(255,255,255,.55); }
+
+/* Make the dynamic “white” blocks open downward (stack vertically) */
+#stoich .grid2, 
+#stoich .grid3 { 
+  display: grid;
+  grid-template-columns: 1fr;   /* stack */
+  gap: .75rem;
+}
+
+/* Small fix so the right-side controls don't overflow the card at narrow widths */
+#stoich .form > * { min-width: 0; }
+
+
+
+
