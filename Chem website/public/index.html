@@ -224,13 +224,12 @@
         </div>
         <!-- gas -->
         <div class="mode mode-gas" hidden>
-          <div class="grid3">
-            <div><label>P (atm)</label><input id="st-P" type="number" step="any" placeholder="e.g., 1.00"></div>
-            <div><label>V (L)</label><input id="st-V" type="number" step="any" placeholder="e.g., 2.00"></div>
-            <div><label>T (K)</label><input id="st-T" type="number" step="any" placeholder="e.g., 298"></div>
-          </div>
-        </div>
-      </div>
+  <div class="grid3">
+    <div><label>P (kPa)</label><input id="st-P" type="number" step="any" placeholder="e.g., 101.3"></div>
+    <div><label>V (L)</label><input id="st-V" type="number" step="any" placeholder="e.g., 2.00"></div>
+    <div><label>T (K)</label><input id="st-T" type="number" step="any" placeholder="e.g., 298"></div>
+  </div>
+</div>
 
       <!-- Output conditions -->
       <div id="st-out-fields">
@@ -240,12 +239,12 @@
           </div>
         </div>
         <div class="mode mode-gas" hidden>
-          <div class="grid3">
-            <div><label>P (atm)</label><input id="st-out-P" type="number" step="any" placeholder="e.g., 1.00"></div>
-            <div><label>T (K)</label><input id="st-out-T" type="number" step="any" placeholder="e.g., 298"></div>
-            <div style="align-self:end;opacity:.8;">Uses R = 0.082057 L·atm·K⁻¹·mol⁻¹</div>
-          </div>
-        </div>
+  <div class="grid3">
+    <div><label>P (kPa)</label><input id="st-out-P" type="number" step="any" placeholder="e.g., 101.3"></div>
+    <div><label>T (K)</label><input id="st-out-T" type="number" step="any" placeholder="e.g., 298"></div>
+    <div style="align-self:end;opacity:.8;">Uses R = 8.314 kPa·L·mol⁻¹·K⁻¹</div>
+  </div>
+</div>
       </div>
 
       <div>
@@ -921,7 +920,7 @@ const LC_Stoich = (()=>{
     return { species, coeffs };
   }
 
-  const R = 0.082057; // L·atm·K^-1·mol^-1
+  const R = 8.314462618; // kPa·L·K^-1·mol^-1
 
   function stoichCompute({ eq, knownSp, targetSp, knownMode, knownVals, outMode, outVals }){
     // 1) get balanced species+coeffs
@@ -1072,6 +1071,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
