@@ -357,14 +357,6 @@
   function isAcid(x){ return /^H[A-Z]/.test(x) && !/^H2O$/.test(x); }
   function isHydroxide(x){ return /OH/.test(x) && !/^H2O$/.test(x); }
   function isMetalElement(x){ return METALS.has(x.replace(/\s+/g,'')); }
-  function splitSalt(x){
-    // very naive: metal first token, remainder is anion (strip count)
-    const m=/^([A-Z][a-z]?)(.*)$/.exec(x.replace(/\s+/g,''));
-    if(!m) return null;
-    const cation=m[1], rest=m[2] || "";
-    const anion = COMMON_ANIONS.find(a=>rest.startsWith(a));
-    return anion ? {cation, anion} : null;
-  }
 
 function predictProducts(reactants){
   const R = reactants.map(s=>s.trim());
@@ -683,6 +675,7 @@ async function localSolveVSEPR(input){
       eg==="octahedral" ? "sp3d2" : "—",
     svg
   };
+}
 
   /* ========== public API ========== */
   async function localSolveEquation(userInput){
@@ -1121,6 +1114,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
