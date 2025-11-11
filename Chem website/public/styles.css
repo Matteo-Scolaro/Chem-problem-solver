@@ -275,7 +275,11 @@ select:focus {
   border-color: rgba(255,255,255,.35);
   box-shadow: 0 0 0 2px rgba(255,255,255,.15);
 }
-
+/* Darken the native select popup (best-effort; OS dependent) */
+#stoich select option {
+  background-color: #0e1528; /* same as your card */
+  color: #fff;
+}
 
 
 
