@@ -609,28 +609,6 @@ function vseprAngle(domains, lp, bp){
   // Fallback
   return 109.5;
 }
-
-const bp = domains - lonePairs;
-
-// FIX: correct bond angle for lone-pair cases (e.g., H2O)
-const bondAngle = vseprAngle(domains, lonePairs, bp);
-
-// OPTIONAL: append “distorted tetrahedral” for AX2E2 (water-type)
-let molecularLabel = molecularGeometry; // whatever name you computed
-if (domains === 4 && lonePairs === 2 && molecularLabel.toLowerCase() === 'bent'){
-  molecularLabel = 'bent (distorted tetrahedral)';
-}
-
-// include these in the object you return / display
-return {
-  electronGeometry,
-  molecularGeometry: molecularLabel,
-  domains,
-  lonePairs,
-  bondAngle,                     // <- use this number for the text readout
-  hybridization,
-  // … your other fields
-};
   
   function drawVSEPR(mg){
     const C="stroke='#fff' stroke-width='2' fill='none'", F="fill='#fff'";
@@ -673,22 +651,38 @@ async function localSolveVSEPR(input){
     };
   }
 
-  // --- Generic fallback (works well for many ABn): bonds = neighbors; lp from VE ---
+   // --- Generico: stima bonds e lone pairs, poi geometria e angolo ---
   const {central,bonds} = countBonds(f);
   const lp = lonePairs(central, bonds);
   const {eg, mg, ed} = classifyGeometry(bonds, lp);
+
+  // calcolo dell’angolo in funzione di domini/lone-pairs
+  const bp = ed - lp;
+  const angle = vseprAngle(ed, lp, bp);
+
+  // etichetta migliorata per AX2E2 (H2O): “bent (distorted tetrahedral)”
+  let mgLabel = mg;
+  if (ed === 4 && lp === 2 && mg === "bent") {
+    mgLabel = "bent (distorted tetrahedral)";
+  }
+
   const svg = drawVSEPR(mg);
+
   return {
-    system:"molecule",
-    formula:f,
+    system: "molecule",
+    formula: f,
     electron_geometry: eg,
-    molecular_geometry: mg,
+    molecular_geometry: mgLabel,
     electron_domains: `${ed} (${bonds} bonding + ${lp} lone)`,
-    bond_angles_deg: eg==="tetrahedral"?"~109.5°":eg==="trigonal planar"?"~120°":eg==="linear"?"180°":eg==="octahedral"?"90°":"varies",
-    hybridization: eg==="linear"?"sp":eg==="trigonal planar"?"sp2":eg==="tetrahedral"?"sp3":eg==="trigonal bipyramidal"?"sp3d":eg==="octahedral"?"sp3d2":"—",
+    bond_angles_deg: `~${angle}°`,
+    hybridization:
+      eg==="linear" ? "sp" :
+      eg==="trigonal planar" ? "sp2" :
+      eg==="tetrahedral" ? "sp3" :
+      eg==="trigonal bipyramidal" ? "sp3d" :
+      eg==="octahedral" ? "sp3d2" : "—",
     svg
   };
-}
 
   /* ========== public API ========== */
   async function localSolveEquation(userInput){
@@ -1127,6 +1121,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
