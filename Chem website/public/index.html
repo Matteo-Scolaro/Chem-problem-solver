@@ -901,23 +901,17 @@ const LC_Stoich = (()=>{
 
   // Use your balancer when possible; fall back to written coeffs
   function balanceReaction(s){
-    try{
-      const out = window.LocalChem.localSolveEquation(s);
-      // expect out like { species:[...], coeffs:[...] } or similar
-      if(out && out.species && out.coeffs && out.species.length===out.coeffs.length){
-        return { species: out.species, coeffs: out.coeffs };
-      }
-    }catch(e){/* fallback */ }
-    // fallback: parse written coeffs like "2 H2O"
+    try {
+    const res = window.LocalChem.balanceEquation(s);   // ← use your exact balancer
+    const species = res.left.map(p=>p.formula).concat(res.right.map(p=>p.formula));
+    const coeffs  = res.left.map(p=>p.coef)  .concat(res.right.map(p=>p.coef));
+    return { species, coeffs };
+  } catch {
+    // very last-resort fallback: treat everything as 1
     const {left,right} = splitReaction(s);
     const all = left.concat(right);
-    const species = [], coeffs = [];
-    for(const term of all){
-      const m = term.match(/^\s*(\d+)\s*(.*)$/);
-      if(m){ coeffs.push(+m[1]); species.push(m[2]); }
-      else { coeffs.push(1); species.push(term); }
-    }
-    return { species, coeffs };
+    return { species: all, coeffs: all.map(()=>1) };
+  }
   }
 
   const R = 8.314462618; // kPa·L·K^-1·mol^-1
@@ -972,12 +966,13 @@ const LC_Stoich = (()=>{
 })();
   
   window.LocalChem = {
-  localSolveEquation,
-  localDrawElement,
-  localSolveVSEPR,
-  localAufbau: LC_Aufbau.localAufbau,
-  stoich: LC_Stoich
-};
+    localSolveEquation,
+    localDrawElement,
+    localSolveVSEPR,
+    localAufbau: LC_Aufbau.localAufbau,
+    balanceEquation,        // ← expose the raw balancer
+    stoich: LC_Stoich
+  };
 })();
 </script>
 
@@ -1071,6 +1066,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
