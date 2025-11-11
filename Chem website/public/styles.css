@@ -281,7 +281,8 @@ select:focus {
   color: #fff;
 }
 
-
+/* Make sure any mode panel disappears when hidden */
+#stoich .mode[hidden] { display: none !important; }
 
 
 
