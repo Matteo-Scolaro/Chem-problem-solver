@@ -152,6 +152,8 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
     e && e.preventDefault();
     try{
       const res = window.LocalChem.localAufbau(inp.value, shCB.checked);
+      const qn  = document.getElementById('auf-qn');
+      qn.innerHTML = res.qnHtml
       cfg.innerHTML = res.configFullHtml;
       sh.innerHTML  = res.shorthandHtml;
       dia.innerHTML = res.diagramHtml;
@@ -161,7 +163,7 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
       cfg.innerHTML = '';
       sh.innerHTML  = '';
       dia.innerHTML = `<div class="error">${err.message}</div>`;
-      document.getElementById('auf-qn').innerHTML = res.qnHtml || '';
+      qn.innerHTML  = '';
     }
   }
 
