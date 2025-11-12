@@ -161,6 +161,7 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
       cfg.innerHTML = '';
       sh.innerHTML  = '';
       dia.innerHTML = `<div class="error">${err.message}</div>`;
+      document.getElementById('auf-qn').innerHTML = res.qnHtml || '';
     }
   }
 
