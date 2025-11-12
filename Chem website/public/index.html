@@ -145,6 +145,8 @@
       <button type="button" id="aufbau-run" class="primary">Build</button>
     </div>
 
+    <div id="auf-qn" class="mono muted" style="margin:.35rem 0 .75rem 0;"></div>
+
     <div class="result" id="aufbau-text">
       <div><b>Configuration:</b> <span id="aufbau-config"></span></div>
       <div><b>Shorthand:</b> <span id="aufbau-sh"></span></div>
@@ -879,15 +881,70 @@ function buildDiagram(occFull, Z, useSh = true){
 
   // NEW: use the fixed pieces
   function localAufbau(input, useSh=true){
-    const { z } = parseElement(input);
-    const occ = fillAufbau(z);
-    return {
-      configFullHtml: configString(occ),
-      shorthandHtml:  shorthand(occ, z),
-      diagramHtml:    diagramHTML(buildDiagram(occ, z, useSh))
-    };
-  }
+  const { z } = parseElement(input);
+  const occ = fillAufbau(z);
 
+  const cfg = configString(occ);
+  const sh  = shorthand(occ, z);
+  const dia = diagramHTML(buildDiagram(occ, z, useSh));
+
+  const qn  = lastElectronQN(z);
+  const qnHtml = qn
+    ? `Quantum numbers (last e⁻ in <code>${qn.subshell}</code>): n = <b>${qn.n}</b>, l = <b>${qn.l}</b>, m<sub>ℓ</sub> = <b>${qn.m_l}</b>, m<sub>s</sub> = <b>${qn.m_s === 0.5 ? "+½" : "−½"}</b>`
+    : '';
+
+  return {
+    configFullHtml: cfg,
+    shorthandHtml:  sh,
+    diagramHtml:    dia,
+    qnHtml          // ← NEW
+  };
+}
+// Map orbital letter to l
+const LVAL = { s:0, p:1, d:2, f:3 };
+
+// Quantum numbers for the last electron (ground state) of Z
+function lastElectronQN(Z){
+  // Full occupancy using your existing Aufbau filler (already handles exceptions)
+  const occ = fillAufbau(Z);
+
+  // Walk subshells in Madelung order until we reach Z electrons
+  let cum = 0, chosen = null, eIndex = 0; // eIndex = position of the last electron inside the chosen subshell (1..2(2l+1))
+  for (const sp of subshellOrder){
+    const here = occ[sp] || 0;
+    if (here <= 0) continue;
+    if (cum + here >= Z){
+      chosen = sp;
+      eIndex = Z - cum;               // 1-based index within this subshell
+      break;
+    }
+    cum += here;
+  }
+  if (!chosen) return null;           // Z=0 guard
+
+  const n = parseInt(chosen, 10);
+  const orb = chosen.slice(-1);
+  const l = LVAL[orb];
+  const nBoxes = 2*l + 1;
+
+  // m_l list ordered from -l .. +l
+  const mList = [];
+  for (let m = -l; m <= l; m++) mList.push(m);
+
+  let m_l, m_s;
+  if (eIndex <= nBoxes){
+    // first pass: all ↑ across boxes
+    m_l = mList[eIndex - 1];
+    m_s = +0.5;
+  } else {
+    // pairing pass: all ↓ in same order
+    const idx = eIndex - nBoxes;      // 1..nBoxes
+    m_l = mList[idx - 1];
+    m_s = -0.5;
+  }
+  return { n, l, m_l, m_s, subshell: chosen, index: eIndex };
+}
+  
   return { localAufbau };
 })();
 
@@ -1130,6 +1187,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
