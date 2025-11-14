@@ -13,7 +13,7 @@
   <header class="hero">
     <div class="wrap">
       <h1>ChemBot</h1>
-      <p class="lead">Fast, free, on-device chemistry tools — balanced equations, VSEPR shapes, and simple drawings. No AI key required.</p>
+      <p class="lead">Fast, free, on-device chemistry tools — balanced equations, VESPR shapes, and simple drawings. No AI key required.</p>
     </div>
   </header>
 
@@ -61,8 +61,8 @@
     <h3>Equation Builder</h3>
     <p>Balance and predict products. ΔH°rxn from ΔH°f when available.</p>
   </a>
-  <a class="nav-card" href="#/vsepr" data-view="vsepr">
-    <h3>VSEPR Shapes</h3>
+  <a class="nav-card" href="#/VESPR" data-view="VESPR">
+    <h3>VESPR Shapes</h3>
     <p>Electron & molecular geometry + white SVG sketch.</p>
   </a>
   <a class="nav-card" href="#/draw" data-view="draw">
@@ -95,11 +95,11 @@
       </div>
 </section>
         
-      <!-- VSEPR -->
-      <section id="vsepr" class="view" hidden>
+      <!-- VESPR -->
+      <section id="VESPR" class="view" hidden>
   <button class="back"><a href="/" style="color:inherit;text-decoration:none;">← Back</a></button>
       <div class="card solver">
-        <h3>VSEPR Shape</h3>
+        <h3>VESPR Shape</h3>
         <p class="muted">Give a formula or keyword. Examples: <code>NH3</code>, <code>CO2</code>, <code>C (graphite)</code></p>
         <div class="form">
           <input id="vs-input" type="text" placeholder="e.g., NH3">
@@ -525,7 +525,7 @@ function buildSalt(cation, anion){
     return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohrSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
   }
 
-  /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
+  /* ---------- VESPR (fixed: uses valence ELECTRONS) ---------- */
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
 
 function countBonds(formula){
@@ -581,10 +581,10 @@ function countBonds(formula){
     return {eg, mg, ed};
   }
 
-  // ===== VSEPR angle heuristics (kPa unrelated) =====
+  // ===== VESPR angle heuristics (kPa unrelated) =====
 // domains = total electron domains around the central atom
 // lp = lone pairs; bp = bonding pairs (domains - lp)
-function vseprAngle(domains, lp, bp){
+function VESPRAngle(domains, lp, bp){
   // Two domains: linear
   if (domains === 2) return 180;
 
@@ -620,7 +620,7 @@ function vseprAngle(domains, lp, bp){
   return 109.5;
 }
   
-  function drawVSEPR(mg){
+  function drawVESPR(mg){
     const C="stroke='#fff' stroke-width='2' fill='none'", F="fill='#fff'";
     const center=`<circle ${F} cx="200" cy="150" r="6"/>`;
     const L=(pts)=>pts.map(([x,y])=>`<line ${C} x1="200" y1="150" x2="${x}" y2="${y}"/>`).join('');
@@ -642,13 +642,13 @@ function vseprAngle(domains, lp, bp){
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${center}${L(pts)}${B(pts)}</svg>`;
   }
 
-async function localSolveVSEPR(input){
+async function localSolveVESPR(input){
   const f = input.trim().replace(/granite/ig,'graphite');
 
   // --- Special case: ozone O3 (3 domains: 2 bonding, 1 lone; sp2) ---
   if (/^O\s*3$/i.test(f)) {
     const eg = "trigonal planar", mg = "bent", ed = 3;
-    const svg = drawVSEPR(mg);
+    const svg = drawVESPR(mg);
     return {
       system: "molecule",
       formula: "O3",
@@ -668,7 +668,7 @@ async function localSolveVSEPR(input){
 
   // calcolo dell’angolo in funzione di domini/lone-pairs
   const bp = ed - lp;
-  const angle = vseprAngle(ed, lp, bp);
+  const angle = VESPRAngle(ed, lp, bp);
 
   // etichetta migliorata per AX2E2 (H2O): “bent (distorted tetrahedral)”
   let mgLabel = mg;
@@ -676,7 +676,7 @@ async function localSolveVSEPR(input){
     mgLabel = "bent (distorted tetrahedral)";
   }
 
-  const svg = drawVSEPR(mg);
+  const svg = drawVESPR(mg);
 
   return {
     system: "molecule",
@@ -1037,6 +1037,21 @@ const LC_Stoich = (()=>{
 
   const R = 8.314462618; // kPa·L·K^-1·mol^-1
 
+ // Ideal gas helpers (P in kPa, V in L, T in K, n in mol)
+  function gasMolesFromPVT(P_kPa, V_L, T_K){
+    if (!(P_kPa > 0 && V_L > 0 && T_K > 0)) {
+      throw Error("Gas P, V and T must all be > 0.");
+    }
+    return (P_kPa * V_L) / (R * T_K);   // n = PV / (RT)
+  }
+
+  function gasVolumeFromNPT(n_mol, P_kPa, T_K){
+    if (!(n_mol > 0 && P_kPa > 0 && T_K > 0)) {
+      throw Error("Gas n, P and T must all be > 0.");
+    }
+    return (n_mol * R * T_K) / P_kPa;   // V = nRT / P
+  }
+  
   function stoichCompute({ eq, knownSp, targetSp, knownMode, knownVals, outMode, outVals }){
     // 1) get balanced species+coeffs
     const { species, coeffs } = balanceReaction(eq);
@@ -1089,7 +1104,7 @@ const LC_Stoich = (()=>{
   window.LocalChem = {
     localSolveEquation,
     localDrawElement,
-    localSolveVSEPR,
+    localSolveVESPR,
     localAufbau: LC_Aufbau.localAufbau,
     balanceEquation,        // ← expose the raw balancer
     stoich: LC_Stoich
@@ -1187,6 +1202,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
