@@ -557,7 +557,13 @@ ${dots}
   async function localDrawElement(symbol){
     const Z=PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
     const sh=shells(Z); const v=(PERIODIC.VE?.[symbol] ?? (sh.at(-1)||0));
-    return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohr_rutherfordSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
+    return {
+    valence_electrons: v,
+    bohr: bohrSVG(symbol,Z),
+    bohr_rutherford: bohr_rutherfordSVG(symbol,Z),   // ← HERE
+    lewis: lewisSVG(symbol,v),
+    notes: "Bohr models with electrons; first 20 elements best supported."
+  };
   }
 
   /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
@@ -1237,6 +1243,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
