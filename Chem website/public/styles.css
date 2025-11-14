@@ -305,16 +305,17 @@ select:focus {
   padding-right: 1.8rem;
 }
 
-/* Fix Bohr/Lewis element dropdown colors */
+/* Match Bohr/Lewis element dropdown to site background */
 #draw-symbol {
-    background: var(--bg1) !important;     /* black background */
-    color: #fff !important;          /* white text */
+    background: var(--bg1) !important;   /* same as page background */
+    color: var(--ink) !important;        /* same text color as site */
+    border: 1px solid var(--edge);
 }
 
-/* Fix the dropdown list options */
+/* Dropdown items */
 #draw-symbol option {
-    background: var(--bg1) !important;     /* black background */
-    color: #fff !important;          /* white text */
+    background: var(--bg1) !important;   /* same background for popup */
+    color: var(--ink) !important;        /* white/light-blue text */
 }
 
 
