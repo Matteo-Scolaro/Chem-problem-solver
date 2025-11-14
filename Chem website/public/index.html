@@ -61,7 +61,7 @@
     <h3>Equation Builder</h3>
     <p>Balance and predict products. ΔH°rxn from ΔH°f when available.</p>
   </a>
-  <a class="nav-card" href="#/VSEPR" data-view="VSEPR">
+  <a class="nav-card" href="#/vsepr" data-view="vsepr">
     <h3>VSEPR Shapes</h3>
     <p>Electron & molecular geometry + white SVG sketch.</p>
   </a>
@@ -96,7 +96,7 @@
 </section>
         
       <!-- VSEPR -->
-      <section id="VSEPR" class="view" hidden>
+      <section id="vsepr" class="view" hidden>
   <button class="back"><a href="/" style="color:inherit;text-decoration:none;">← Back</a></button>
       <div class="card solver">
         <h3>VSEPR Shape</h3>
@@ -584,7 +584,7 @@ function countBonds(formula){
   // ===== VSEPR angle heuristics (kPa unrelated) =====
 // domains = total electron domains around the central atom
 // lp = lone pairs; bp = bonding pairs (domains - lp)
-function VSEPRAngle(domains, lp, bp){
+function vseprAngle(domains, lp, bp){
   // Two domains: linear
   if (domains === 2) return 180;
 
@@ -668,7 +668,7 @@ async function localSolveVSEPR(input){
 
   // calcolo dell’angolo in funzione di domini/lone-pairs
   const bp = ed - lp;
-  const angle = VSEPRAngle(ed, lp, bp);
+  const angle = vseprAngle(ed, lp, bp);
 
   // etichetta migliorata per AX2E2 (H2O): “bent (distorted tetrahedral)”
   let mgLabel = mg;
@@ -1037,7 +1037,7 @@ const LC_Stoich = (()=>{
 
   const R = 8.314462618; // kPa·L·K^-1·mol^-1
 
- // Ideal gas helpers (P in kPa, V in L, T in K, n in mol)
+  // Ideal gas helpers (P in kPa, V in L, T in K, n in mol)
   function gasMolesFromPVT(P_kPa, V_L, T_K){
     if (!(P_kPa > 0 && V_L > 0 && T_K > 0)) {
       throw Error("Gas P, V and T must all be > 0.");
@@ -1070,7 +1070,7 @@ const LC_Stoich = (()=>{
       nKnown = (+knownVals.M) * (+knownVals.VL);
     } else if(knownMode === 'gas'){
       const P = +knownVals.P, V = +knownVals.V, T = +knownVals.T;
-      nKnown = (P*V)/(R*T);
+      nKnown = gasMolesFromPVT(P, V, T);
     } else { throw Error("Unknown known mode"); }
     if(!isFinite(nKnown) || nKnown<=0) throw Error("Known amount is invalid");
 
@@ -1089,8 +1089,8 @@ const LC_Stoich = (()=>{
       value = nTarget / M; unit = 'L';
     } else if(outMode === 'gas'){
       const P = +outVals.P, T = +outVals.T;
-      if(!(P>0 && T>0)) throw Error("Output P and T are required");
-      value = (nTarget*R*T)/P; unit = 'L';
+      value = gasVolumeFromNPT(nTarget, P, T);
+      unit = 'L';
     } else { throw Error("Unknown output mode"); }
 
     return {
@@ -1202,9 +1202,6 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
-
-
-
 
 
 
