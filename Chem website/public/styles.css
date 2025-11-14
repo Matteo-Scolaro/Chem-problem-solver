@@ -307,13 +307,13 @@ select:focus {
 
 /* Fix Bohr/Lewis element dropdown colors */
 #draw-symbol {
-    background: #000 !important;     /* black background */
+    background: var(--bg1) !important;     /* black background */
     color: #fff !important;          /* white text */
 }
 
 /* Fix the dropdown list options */
 #draw-symbol option {
-    background: #000 !important;     /* black background */
+    background: var(--bg1) !important;     /* black background */
     color: #fff !important;          /* white text */
 }
 
