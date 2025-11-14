@@ -503,11 +503,36 @@ function buildSalt(cation, anion){
       }).join('');
     }).join('');
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="200" cy="150" r="8" fill="#fff"/>
+      <circle cx="200" cy="150" r="22" fill="#3a5dd9"/>
+<text x="200" y="157" font-size="20" fill="#fff" text-anchor="middle">${symbol}</text>
       ${sh.map((_,i)=>`<circle cx="200" cy="150" r="${40+30*i}" stroke="#fff" stroke-width="2" fill="none"/>`).join('')}
       ${dots}
     </svg>`;
   }
+  function bohr_rutherfordSVG(symbol, z) {
+  const sh = shells(z);
+  const MASS = PERIODIC.VEC?.[symbol] ?? (sh.at(-1)?.[0]||0); // fallback if needed
+  const protons = z;
+  const neutrons = MASS - z;
+
+  const dots = sh.map((n,i)=>{
+    const R=40+30*i;
+    return Array.from({length:n}).map((_,k)=>{
+      const a=(k/n)*2*Math.PI,
+            x=200+R*Math.cos(a),
+            y=150+R*Math.sin(a);
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#fff"/>`;
+    }).join('');
+  });
+
+  return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+<circle cx="200" cy="150" r="30" fill="#3a5dd9"/>
+<text x="200" y="145" font-size="18" fill="#fff" text-anchor="middle">${protons} P</text>
+<text x="200" y="170" font-size="18" fill="#fff" text-anchor="middle">${neutrons} N</text>
+${sh.map((_,i)=>`<circle cx="200" cy="150" r="${40+30*i}" stroke="#fff" stroke-width="2" fill="none"/>`).join('')}
+${dots}
+</svg>`;
+}
   function lewisSVG(symbol,v){
     const pts = Array.from({length:v}).map((_,i)=>{
       const a=(i/v)*2*Math.PI, R=70, x=200+R*Math.cos(a), y=150+R*Math.sin(a);
@@ -521,7 +546,7 @@ function buildSalt(cation, anion){
   async function localDrawElement(symbol){
     const Z=PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
     const sh=shells(Z); const v=(PERIODIC.VE?.[symbol] ?? (sh.at(-1)||0));
-    return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohrSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
+    return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohr_rutherfordSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
   }
 
   /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
@@ -1201,6 +1226,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
