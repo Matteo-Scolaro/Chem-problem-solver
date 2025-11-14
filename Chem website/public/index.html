@@ -13,7 +13,7 @@
   <header class="hero">
     <div class="wrap">
       <h1>ChemBot</h1>
-      <p class="lead">Fast, free, on-device chemistry tools — balanced equations, VESPR shapes, and simple drawings. No AI key required.</p>
+      <p class="lead">Fast, free, on-device chemistry tools — balanced equations, VSEPR shapes, and simple drawings. No AI key required.</p>
     </div>
   </header>
 
@@ -61,8 +61,8 @@
     <h3>Equation Builder</h3>
     <p>Balance and predict products. ΔH°rxn from ΔH°f when available.</p>
   </a>
-  <a class="nav-card" href="#/VESPR" data-view="VESPR">
-    <h3>VESPR Shapes</h3>
+  <a class="nav-card" href="#/VSEPR" data-view="VSEPR">
+    <h3>VSEPR Shapes</h3>
     <p>Electron & molecular geometry + white SVG sketch.</p>
   </a>
   <a class="nav-card" href="#/draw" data-view="draw">
@@ -95,11 +95,11 @@
       </div>
 </section>
         
-      <!-- VESPR -->
-      <section id="VESPR" class="view" hidden>
+      <!-- VSEPR -->
+      <section id="VSEPR" class="view" hidden>
   <button class="back"><a href="/" style="color:inherit;text-decoration:none;">← Back</a></button>
       <div class="card solver">
-        <h3>VESPR Shape</h3>
+        <h3>VSEPR Shape</h3>
         <p class="muted">Give a formula or keyword. Examples: <code>NH3</code>, <code>CO2</code>, <code>C (graphite)</code></p>
         <div class="form">
           <input id="vs-input" type="text" placeholder="e.g., NH3">
@@ -525,7 +525,7 @@ function buildSalt(cation, anion){
     return { valence_electrons:v, bohr:bohrSVG(symbol,Z), bohr_rutherford:bohrSVG(symbol,Z), lewis:lewisSVG(symbol,v), notes:"Bohr models with electrons; first 20 elements best supported." };
   }
 
-  /* ---------- VESPR (fixed: uses valence ELECTRONS) ---------- */
+  /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
 
 function countBonds(formula){
@@ -581,10 +581,10 @@ function countBonds(formula){
     return {eg, mg, ed};
   }
 
-  // ===== VESPR angle heuristics (kPa unrelated) =====
+  // ===== VSEPR angle heuristics (kPa unrelated) =====
 // domains = total electron domains around the central atom
 // lp = lone pairs; bp = bonding pairs (domains - lp)
-function VESPRAngle(domains, lp, bp){
+function VSEPRAngle(domains, lp, bp){
   // Two domains: linear
   if (domains === 2) return 180;
 
@@ -620,7 +620,7 @@ function VESPRAngle(domains, lp, bp){
   return 109.5;
 }
   
-  function drawVESPR(mg){
+  function drawVSEPR(mg){
     const C="stroke='#fff' stroke-width='2' fill='none'", F="fill='#fff'";
     const center=`<circle ${F} cx="200" cy="150" r="6"/>`;
     const L=(pts)=>pts.map(([x,y])=>`<line ${C} x1="200" y1="150" x2="${x}" y2="${y}"/>`).join('');
@@ -642,13 +642,13 @@ function VESPRAngle(domains, lp, bp){
     return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">${center}${L(pts)}${B(pts)}</svg>`;
   }
 
-async function localSolveVESPR(input){
+async function localSolveVSEPR(input){
   const f = input.trim().replace(/granite/ig,'graphite');
 
   // --- Special case: ozone O3 (3 domains: 2 bonding, 1 lone; sp2) ---
   if (/^O\s*3$/i.test(f)) {
     const eg = "trigonal planar", mg = "bent", ed = 3;
-    const svg = drawVESPR(mg);
+    const svg = drawVSEPR(mg);
     return {
       system: "molecule",
       formula: "O3",
@@ -668,7 +668,7 @@ async function localSolveVESPR(input){
 
   // calcolo dell’angolo in funzione di domini/lone-pairs
   const bp = ed - lp;
-  const angle = VESPRAngle(ed, lp, bp);
+  const angle = VSEPRAngle(ed, lp, bp);
 
   // etichetta migliorata per AX2E2 (H2O): “bent (distorted tetrahedral)”
   let mgLabel = mg;
@@ -676,7 +676,7 @@ async function localSolveVESPR(input){
     mgLabel = "bent (distorted tetrahedral)";
   }
 
-  const svg = drawVESPR(mg);
+  const svg = drawVSEPR(mg);
 
   return {
     system: "molecule",
@@ -1104,7 +1104,7 @@ const LC_Stoich = (()=>{
   window.LocalChem = {
     localSolveEquation,
     localDrawElement,
-    localSolveVESPR,
+    localSolveVSEPR,
     localAufbau: LC_Aufbau.localAufbau,
     balanceEquation,        // ← expose the raw balancer
     stoich: LC_Stoich
@@ -1202,6 +1202,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
