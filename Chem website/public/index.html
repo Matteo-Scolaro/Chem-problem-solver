@@ -284,7 +284,14 @@
   window.PERIODIC = {
     Z:{H:1,He:2,Li:3,Be:4,B:5,C:6,N:7,O:8,F:9,Ne:10,Na:11,Mg:12,Al:13,Si:14,P:15,S:16,Cl:17,Ar:18,K:19,Ca:20},
     VE:{H:1,He:2,Li:1,Be:2,B:3,C:4,N:5,O:6,F:7,Ne:8,Na:1,Mg:2,Al:3,Si:4,P:5,S:6,Cl:7,Ar:8,K:1,Ca:2}
-  };
+    // approximate mass numbers (A) for first 20 elements
+  MASS:{
+    H:1, He:4,
+    Li:7, Be:9, B:11, C:12, N:14, O:16, F:19, Ne:20,
+    Na:23, Mg:24, Al:27, Si:28, P:31, S:32, Cl:35, Ar:40,
+    K:39, Ca:40
+  }
+};
 </script>
 <script>
 (()=>{ // LocalChem v2 — products, ΔH°rxn via ΔH°f, mechanisms
@@ -509,21 +516,25 @@ function buildSalt(cation, anion){
       ${dots}
     </svg>`;
   }
-  function bohr_rutherfordSVG(symbol, z) {
+ function bohr_rutherfordSVG(symbol,z){
   const sh = shells(z);
-  const MASS = PERIODIC.VEC?.[symbol] ?? (sh.at(-1)?.[0]||0); // fallback if needed
-  const protons = z;
-  const neutrons = MASS - z;
 
+  // same electron dots as in bohrSVG
   const dots = sh.map((n,i)=>{
-    const R=40+30*i;
+    const R = 40 + 30*i;
     return Array.from({length:n}).map((_,k)=>{
-      const a=(k/n)*2*Math.PI,
-            x=200+R*Math.cos(a),
-            y=150+R*Math.sin(a);
+      const a = (k/n)*2*Math.PI,
+            x = 200 + R*Math.cos(a),
+            y = 150 + R*Math.sin(a);
       return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="#fff"/>`;
     }).join('');
-  });
+  }).join('');
+
+  // protons and neutrons
+  const Z = z;
+  const A = (window.PERIODIC.MASS && window.PERIODIC.MASS[symbol]) || Z*2; // fallback ≈ 2Z
+  const protons  = Z;
+  const neutrons = Math.max(0, A - Z);  // prevents negative values
 
   return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
 <circle cx="200" cy="150" r="30" fill="#3a5dd9"/>
@@ -1226,6 +1237,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
