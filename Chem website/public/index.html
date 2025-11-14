@@ -282,9 +282,9 @@
 <script>
   // Atomic number + VALENCE ELECTRONS (VE) for first 20
   window.PERIODIC = {
-    Z:{H:1,He:2,Li:3,Be:4,B:5,C:6,N:7,O:8,F:9,Ne:10,Na:11,Mg:12,Al:13,Si:14,P:15,S:16,Cl:17,Ar:18,K:19,Ca:20},
-    VE:{H:1,He:2,Li:1,Be:2,B:3,C:4,N:5,O:6,F:7,Ne:8,Na:1,Mg:2,Al:3,Si:4,P:5,S:6,Cl:7,Ar:8,K:1,Ca:2}
-    // approximate mass numbers (A) for first 20 elements
+  Z:{H:1,He:2,Li:3,Be:4,B:5,C:6,N:7,O:8,F:9,Ne:10,Na:11,Mg:12,Al:13,Si:14,P:15,S:16,Cl:17,Ar:18,K:19,Ca:20},
+  VE:{H:1,He:2,Li:1,Be:2,B:3,C:4,N:5,O:6,F:7,Ne:8,Na:1,Mg:2,Al:3,Si:4,P:5,S:6,Cl:7,Ar:8,K:1,Ca:2},
+  // approximate mass numbers (A) for first 20 elements
   MASS:{
     H:1, He:4,
     Li:7, Be:9, B:11, C:12, N:14, O:16, F:19, Ne:20,
@@ -532,9 +532,12 @@ function buildSalt(cation, anion){
 
   // protons and neutrons
   const Z = z;
-  const A = (window.PERIODIC.MASS && window.PERIODIC.MASS[symbol]) || Z*2; // fallback ≈ 2Z
+  const A =
+    (window.PERIODIC && window.PERIODIC.MASS && window.PERIODIC.MASS[symbol])
+    || Z * 2;  // simple fallback ≈ 2Z if mass not listed
+
   const protons  = Z;
-  const neutrons = Math.max(0, A - Z);  // prevents negative values
+  const neutrons = Math.max(0, A - Z);
 
   return `<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
 <circle cx="200" cy="150" r="30" fill="#3a5dd9"/>
@@ -554,17 +557,25 @@ ${dots}
       ${pts}
     </svg>`;
   }
-  async function localDrawElement(symbol){
-    const Z=PERIODIC.Z[symbol]; if(!Z) return {error:"Unknown element"};
-    const sh=shells(Z); const v=(PERIODIC.VE?.[symbol] ?? (sh.at(-1)||0));
-    return {
+ async function localDrawElement(symbol){
+  const data  = window.PERIODIC || {};
+  const Zmap  = data.Z  || {};
+  const VEmap = data.VE || {};
+
+  const Z = Zmap[symbol];
+  if (!Z) return { error: "Unknown element" };
+
+  const sh = shells(Z);
+  const v  = (VEmap[symbol] ?? (sh.at(-1) || 0));
+
+  return {
     valence_electrons: v,
-    bohr: bohrSVG(symbol,Z),
-    bohr_rutherford: bohr_rutherfordSVG(symbol,Z),   // ← HERE
-    lewis: lewisSVG(symbol,v),
+    bohr:           bohrSVG(symbol, Z),
+    bohr_rutherford: bohr_rutherfordSVG(symbol, Z),
+    lewis:          lewisSVG(symbol, v),
     notes: "Bohr models with electrons; first 20 elements best supported."
   };
-  }
+}
 
   /* ---------- VSEPR (fixed: uses valence ELECTRONS) ---------- */
   const EG = {2:"linear",3:"trigonal planar",4:"tetrahedral",5:"trigonal bipyramidal",6:"octahedral"};
@@ -601,8 +612,8 @@ function countBonds(formula){
   return { central, bonds };
 }
 
-  function lonePairs(central, bonds){
-    const VE = (window.PERIODIC.VE?.[central] ?? 4);           // valence electrons of central atom
+   function lonePairs(central, bonds){
+    const VE = (window.PERIODIC?.VE?.[central] ?? 4);          // valence electrons of central atom
     const lp = Math.max(0, Math.floor((VE - bonds)/2));        // lone pairs (integer)
     return lp;
   }
@@ -1243,6 +1254,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
