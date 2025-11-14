@@ -305,18 +305,35 @@ select:focus {
   padding-right: 1.8rem;
 }
 
-/* Match Bohr/Lewis element dropdown to site background */
+/* Make the element selector match the rest of the site */
 #draw-symbol {
-    background: var(--bg1) !important;   /* same as page background */
-    color: var(--ink) !important;        /* same text color as site */
-    border: 1px solid var(--edge);
+    background: var(--bg2) !important;   /* same as other selects */
+    color: var(--ink) !important;        /* same text color */
+    border: 1px solid var(--edge) !important;
+    border-radius: 8px;
+    padding: 8px;
 }
 
-/* Dropdown items */
+/* Options inside dropdown */
 #draw-symbol option {
-    background: var(--bg1) !important;   /* same background for popup */
-    color: var(--ink) !important;        /* white/light-blue text */
+    background: var(--bg2) !important;   /* same dropdown bg */
+    color: var(--ink) !important;        /* same dropdown text */
 }
+
+/* Make hover match other selects */
+#draw-symbol:hover {
+    background-color: rgba(255,255,255,.13) !important;
+}
+
+/* Make focus match other selects */
+#draw-symbol:focus {
+    outline: none !important;
+    border-color: rgba(255,255,255,.35) !important;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.15) !important;
+}
+
+
+
 
 
 
