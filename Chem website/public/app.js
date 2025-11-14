@@ -187,15 +187,33 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
   const knownFields = document.getElementById('st-known-fields');
   const outFields   = document.getElementById('st-out-fields');
 
-  function showMode(container, mode){
-    container.querySelectorAll('.mode').forEach(d=>d.hidden=true);
-    container.querySelectorAll(`.mode-${mode}`).forEach(d=>d.hidden=false);
+function showMode(container, mode, isOut){
+    // hide all mode blocks inside this container
+    container.querySelectorAll('.mode').forEach(d => d.hidden = true);
+    // show only the ones matching the current mode (if any)
+    container.querySelectorAll(`.mode-${mode}`).forEach(d => d.hidden = false);
+
+    if (isOut) {
+      // For outputs "Moles" and "Mass" we don't need any extra fields,
+      // so hide the whole output-conditions container.
+      if (mode === 'mol' || mode === 'mass') {
+        container.hidden = true;
+      } else {
+        container.hidden = false;
+      }
+    }
   }
 
-  knownMode.addEventListener('change', ()=> showMode(knownFields, knownMode.value));
-  outMode.addEventListener('change',   ()=> showMode(outFields,   outMode.value));
-  showMode(knownFields, knownMode.value);
-  showMode(outFields, outMode.value);
+  knownMode.addEventListener('change', () =>
+    showMode(knownFields, knownMode.value, false)
+  );
+  outMode.addEventListener('change', () =>
+    showMode(outFields, outMode.value, true)
+  );
+
+  // initial state on page load
+  showMode(knownFields, knownMode.value, false);
+  showMode(outFields, outMode.value, true);
 
   function populateSpecies(list){
     knownS.innerHTML = ''; targetS.innerHTML = '';
