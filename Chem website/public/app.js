@@ -290,6 +290,25 @@ eq && eq.addEventListener('input', ()=> {
   document.getElementById('st-target').innerHTML = '';
 });
 
+  // --- TESTING PYTHON BACKEND CONNECTION ---
+const testBtn = document.getElementById("testStoichAPI");
+if (testBtn) {
+  testBtn.addEventListener("click", async () => {
+    const response = await fetch("http://127.0.0.1:8000/api/stoich", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ value: 5 })  // sending a test value
+    });
+
+    const data = await response.json();
+
+    // display the result
+    document.getElementById("stoichResult").textContent =
+      "Backend result: " + data.result;
+  });
+}
   
 })();
 
