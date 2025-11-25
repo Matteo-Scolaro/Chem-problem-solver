@@ -172,27 +172,105 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
 })();
 
 // ===== Stoichiometry wiring =====
-(function(){
+(function () {
+  const eq       = document.getElementById("st-eq");
+  const knownS   = document.getElementById("st-known");
+  const targetS  = document.getElementById("st-target");
+  const parseB   = document.getElementById("st-parse");
+  const runB     = document.getElementById("st-run");
+
+  const knownMode = document.getElementById("st-known-mode");
+  const outMode   = document.getElementById("st-out-mode");
+  const result    = document.getElementById("st-result");
+
+  // mode containers
+  const knownFields = document.getElementById("st-known-fields");
+  const outFields   = document.getElementById("st-out-fields");
+
+  function showMode(container, mode, isOut) {
+    // hide all mode blocks inside this container
+    container.querySelectorAll(".mode").forEach((d) => (d.hidden = true));
+    // show only the ones matching the current mode (if any)
+    container
+      .querySelectorAll(`.mode-${mode}`)
+      .forEach((d) => (d.hidden = false));
+
+    if (isOut) {
+      // For outputs "Moles" and "Mass" we don't need any extra fields,
+      // so hide the whole output-conditions container.
+      if (mode === "mol" || mode === "mass") {
+        container.hidden = true;
+      } else {
+        container.hidden = false;
+      }
+    }
+  }
+
+  knownMode &&
+    knownMode.addEventListener("change", () =>
+      showMode(knownFields, knownMode.value, false)
+    );
+  outMode &&
+    outMode.addEventListener("change", () =>
+      showMode(outFields, outMode.value, true)
+    );
+
+  // initial state on page load
+  if (knownMode && outMode) {
+    showMode(knownFields, knownMode.value, false);
+    showMode(outFields, outMode.value, true);
+  }
+
+  function populateSpecies(list) {
+    knownS.innerHTML = "";
+    targetS.innerHTML = "";
+    list.forEach((s) => {
+      const o1 = document.createElement("option");
+      o1.value = o1.textContent = s;
+      const o2 = document.createElement("option");
+      o2.value = o2.textContent = s;
+      knownS.appendChild(o1);
+      targetS.appendChild(o2);
+    });
+    if (list.length > 1) targetS.selectedIndex = 1;
+  }
+
+  function doParse() {
+    try {
+      // still using LocalChem in JS for parsing/balancing
+      const out = window.LocalChem.stoich.balanceReaction(eq.value);
+      populateSpecies(out.species);
+      result.innerHTML = `<div>Balanced species detected: <code>${out.species.join(
+        " | "
+      )}</code></div>`;
+      if (runB) runB.disabled = false; // enable Compute
+    } catch (err) {
+      result.innerHTML = `<div class="error">${err.message}</div>`;
+      if (runB) runB.disabled = true;
+    }
+  }
+
   async function doRun() {
     try {
-      const km = knownMode.value, om = outMode.value;
+      const km = knownMode.value,
+        om = outMode.value;
 
       const knownVals = {
-        n:  +document.getElementById('st-known-mol').value,
-        g:  +document.getElementById('st-known-g').value,
-        M:  +document.getElementById('st-known-M').value,
-        VL: +document.getElementById('st-known-VL').value,
-        P:  +document.getElementById('st-P').value,
-        V:  +document.getElementById('st-V').value,
-        T:  +document.getElementById('st-T').value
+        n: +document.getElementById("st-known-mol").value,
+        g: +document.getElementById("st-known-g").value,
+        M: +document.getElementById("st-known-M").value,
+        VL: +document.getElementById("st-known-VL").value,
+        P: +document.getElementById("st-P").value,
+        V: +document.getElementById("st-V").value,
+        T: +document.getElementById("st-T").value,
       };
       const outVals = {
-        M: +document.getElementById('st-out-M').value,
-        P: +document.getElementById('st-out-P').value,
-        T: +document.getElementById('st-out-T').value
+        M: +document.getElementById("st-out-M").value,
+        P: +document.getElementById("st-out-P").value,
+        T: +document.getElementById("st-out-T").value,
       };
 
-      // This matches the StoichRequest model in main.py
+      // Payload shape matches StoichRequest in main.py
       const payload = {
         eq: eq.value,
         knownSp: knownS.value,
@@ -200,16 +278,15 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         knownMode: km,
         knownVals,
         outMode: om,
-        outVals
+        outVals,
       };
 
-      // Call the Python backend instead of LocalChem.stoich.stoichCompute
       const response = await fetch("http://127.0.0.1:8000/api/stoich", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -220,9 +297,10 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
 
       const res = await response.json();
 
-      // Show backend result
       result.innerHTML = `
-        <div><b>Result (from backend):</b> ${Number(res.value).toPrecision(6)} ${res.unit}</div>
+        <div><b>Result (from backend):</b> ${Number(res.value).toPrecision(
+          6
+        )} ${res.unit}</div>
         <div class="muted">${res.details || ""}</div>
       `;
     } catch (err) {
@@ -231,20 +309,21 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
     }
   }
 
-  parseB && parseB.addEventListener('click', doParse);
-  runB && runB.addEventListener('click', doRun);
+  // hook up buttons
+  parseB && parseB.addEventListener("click", doParse);
+  runB && runB.addEventListener("click", doRun);
 
-// disable Compute until a successful Parse
- if (runB) runB.disabled = true;
+  // disable Compute until a successful Parse
+  if (runB) runB.disabled = true;
 
-// when reaction changes, force re-parse
-eq && eq.addEventListener('input', ()=> {
-  runB.disabled = true;
-  // clear dropdowns so it's obvious they need to parse
-  document.getElementById('st-known').innerHTML = '';
-  document.getElementById('st-target').innerHTML = '';
-});
-  
+  // when reaction changes, force re-parse
+  eq &&
+    eq.addEventListener("input", () => {
+      if (runB) runB.disabled = true;
+      // clear dropdowns so it's obvious they need to parse
+      document.getElementById("st-known").innerHTML = "";
+      document.getElementById("st-target").innerHTML = "";
+    });
 })();
 
 
