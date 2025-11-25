@@ -172,62 +172,44 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
 })();
 
 // ===== Stoichiometry wiring =====
-(function () {
-  const eq       = document.getElementById("st-eq");
-  const knownS   = document.getElementById("st-known");
-  const targetS  = document.getElementById("st-target");
-  const parseB   = document.getElementById("st-parse");
-  const runB     = document.getElementById("st-run");
+(function(){
+  const eq     = document.getElementById('st-eq');
+  const knownS = document.getElementById('st-known');
+  const targetS= document.getElementById('st-target');
+  const parseB = document.getElementById('st-parse');
+  const runB   = document.getElementById('st-run');
 
-  const knownMode = document.getElementById("st-known-mode");
-  const outMode   = document.getElementById("st-out-mode");
-  const result    = document.getElementById("st-result");
+  const knownMode = document.getElementById('st-known-mode');
+  const outMode   = document.getElementById('st-out-mode');
+  const result    = document.getElementById('st-result');
 
   // mode containers
-  const knownFields = document.getElementById("st-known-fields");
-  const outFields   = document.getElementById("st-out-fields");
+  const knownFields = document.getElementById('st-known-fields');
+  const outFields   = document.getElementById('st-out-fields');
 
-  function showMode(container, mode, isOut) {
-    // hide all mode blocks inside this container
-    container.querySelectorAll(".mode").forEach((d) => (d.hidden = true));
-    // show only the ones matching the current mode (if any)
-    container
-      .querySelectorAll(`.mode-${mode}`)
-      .forEach((d) => (d.hidden = false));
-
-    if (isOut) {
-      // For outputs "Moles" and "Mass" we don't need any extra fields,
-      // so hide the whole output-conditions container.
-      if (mode === "mol" || mode === "mass") {
-        container.hidden = true;
-      } else {
-        container.hidden = false;
-      }
-    }
+  function showMode(container, mode, isOut){
+    container.querySelectorAll('.mode').forEach(d => d.hidden = true);
+    container.querySelectorAll('.mode-' + mode).forEach(d => d.hidden = false);
   }
 
-  knownMode &&
-    knownMode.addEventListener("change", () =>
-      showMode(knownFields, knownMode.value, false)
-    );
-  outMode &&
-    outMode.addEventListener("change", () =>
-      showMode(outFields, outMode.value, true)
-    );
-
-  // initial state on page load
-  if (knownMode && outMode) {
+  knownMode && knownMode.addEventListener('change', () => {
     showMode(knownFields, knownMode.value, false);
+  });
+  outMode && outMode.addEventListener('change', () => {
     showMode(outFields, outMode.value, true);
-  }
+  });
 
-  function populateSpecies(list) {
-    knownS.innerHTML = "";
-    targetS.innerHTML = "";
-    list.forEach((s) => {
-      const o1 = document.createElement("option");
+  // set initial visibility
+  showMode(knownFields, knownMode.value, false);
+  showMode(outFields, outMode.value, true);
+
+  function populateSpecies(list){
+    knownS.innerHTML = '';
+    targetS.innerHTML = '';
+    list.forEach(s => {
+      const o1 = document.createElement('option');
       o1.value = o1.textContent = s;
-      const o2 = document.createElement("option");
+      const o2 = document.createElement('option');
       o2.value = o2.textContent = s;
       knownS.appendChild(o1);
       targetS.appendChild(o2);
@@ -235,44 +217,55 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
     if (list.length > 1) targetS.selectedIndex = 1;
   }
 
-  function doParse() {
-    try {
-      // still using LocalChem in JS for parsing/balancing
+  function doParse(){
+    try{
       const out = window.LocalChem.stoich.balanceReaction(eq.value);
       populateSpecies(out.species);
-      result.innerHTML = `<div>Balanced species detected: <code>${out.species.join(
-        " | "
-      )}</code></div>`;
-      if (runB) runB.disabled = false; // enable Compute
-    } catch (err) {
+      result.innerHTML =
+        `<div>Balanced species detected: <code>${out.species.join(' | ')}</code></div>`;
+      runB.disabled = false;     // enable Compute
+    }catch(err){
       result.innerHTML = `<div class="error">${err.message}</div>`;
-      if (runB) runB.disabled = true;
+      runB.disabled = true;
     }
   }
 
-  async function doRun() {
-    try {
-      const km = knownMode.value,
-        om = outMode.value;
+  // REAL Python-powered compute
+  async function doRun(){
+    try{
+      const km = knownMode.value;
+      const om = outMode.value;
 
+      // 1) get a balanced equation string using the JS balancer
+      let balancedEq = eq.value;
+      try{
+        if (typeof balanceEquation === "function"){
+          const b = balanceEquation(eq.value);
+          if (b && b.balanced) balancedEq = b.balanced;
+        }
+      }catch(e){
+        console.warn("balanceEquation failed, using raw equation", e);
+      }
+
+      // 2) collect input values
       const knownVals = {
-        n: +document.getElementById("st-known-mol").value,
-        g: +document.getElementById("st-known-g").value,
-        M: +document.getElementById("st-known-M").value,
-        VL: +document.getElementById("st-known-VL").value,
-        P: +document.getElementById("st-P").value,
-        V: +document.getElementById("st-V").value,
-        T: +document.getElementById("st-T").value,
-      };
-      const outVals = {
-        M: +document.getElementById("st-out-M").value,
-        P: +document.getElementById("st-out-P").value,
-        T: +document.getElementById("st-out-T").value,
+        n:  +document.getElementById('st-known-mol').value,
+        g:  +document.getElementById('st-known-g').value,
+        M:  +document.getElementById('st-known-M').value,
+        VL: +document.getElementById('st-known-VL').value,
+        P:  +document.getElementById('st-P').value,
+        V:  +document.getElementById('st-V').value,
+        T:  +document.getElementById('st-T').value,
       };
 
-      // Payload shape matches StoichRequest in main.py
+      const outVals = {
+        M: +document.getElementById('st-out-M').value,
+        P: +document.getElementById('st-out-P').value,
+        T: +document.getElementById('st-out-T').value,
+      };
+
       const payload = {
-        eq: eq.value,
+        eq: balancedEq,            // <<< send balanced equation to Python
         knownSp: knownS.value,
         targetSp: targetS.value,
         knownMode: km,
@@ -281,53 +274,44 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         outVals,
       };
 
-      const response = await fetch("http://127.0.0.1:8000/api/stoich", {
+      result.innerHTML =
+        `<div class="mono muted">Contacting Python backend…</div>`;
+
+      const res = await fetch("http://127.0.0.1:8000/api/stoich", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        throw new Error(
-          "Backend error: " + response.status + " " + response.statusText
-        );
+      const data = await res.json();
+      if (!res.ok){
+        const msg = data.detail || res.statusText || "Backend error.";
+        throw new Error(msg);
       }
 
-      const res = await response.json();
+      const mainLine =
+        `<b>Result (from backend):</b> ${data.value.toFixed(4)} ${data.unit}`;
+      const details = data.details
+        ? `<div class="mono muted" style="margin-top:.5rem;">${data.details}</div>`
+        : "";
 
-      result.innerHTML = `
-        <div><b>Result (from backend):</b> ${Number(res.value).toPrecision(
-          6
-        )} ${res.unit}</div>
-        <div class="muted">${res.details || ""}</div>
-      `;
-    } catch (err) {
+      result.innerHTML = `<div>${mainLine}</div>${details}`;
+    }catch(err){
       console.error(err);
       result.innerHTML = `<div class="error">${err.message}</div>`;
     }
   }
 
-  // hook up buttons
-  parseB && parseB.addEventListener("click", doParse);
-  runB && runB.addEventListener("click", doRun);
+  parseB && parseB.addEventListener('click', doParse);
+  runB && runB.addEventListener('click', doRun);
 
   // disable Compute until a successful Parse
   if (runB) runB.disabled = true;
 
-  // when reaction changes, force re-parse
-  eq &&
-    eq.addEventListener("input", () => {
-      if (runB) runB.disabled = true;
-      // clear dropdowns so it's obvious they need to parse
-      document.getElementById("st-known").innerHTML = "";
-      document.getElementById("st-target").innerHTML = "";
-    });
+  // when reaction text changes, force re-parse
+  eq && eq.addEventListener('input', () => {
+    if (runB) runB.disabled = true;
+    document.getElementById('st-known').innerHTML = '';
+    document.getElementById('st-target').innerHTML = '';
+  });
 })();
-
-
-
-
-
-
