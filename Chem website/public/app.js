@@ -173,72 +173,8 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
 
 // ===== Stoichiometry wiring =====
 (function(){
-  const eq     = document.getElementById('st-eq');
-  const knownS = document.getElementById('st-known');
-  const targetS= document.getElementById('st-target');
-  const parseB = document.getElementById('st-parse');
-  const runB   = document.getElementById('st-run');
-
-  const knownMode = document.getElementById('st-known-mode');
-  const outMode   = document.getElementById('st-out-mode');
-  const result    = document.getElementById('st-result');
-
-  // mode containers
-  const knownFields = document.getElementById('st-known-fields');
-  const outFields   = document.getElementById('st-out-fields');
-
-function showMode(container, mode, isOut){
-    // hide all mode blocks inside this container
-    container.querySelectorAll('.mode').forEach(d => d.hidden = true);
-    // show only the ones matching the current mode (if any)
-    container.querySelectorAll(`.mode-${mode}`).forEach(d => d.hidden = false);
-
-    if (isOut) {
-      // For outputs "Moles" and "Mass" we don't need any extra fields,
-      // so hide the whole output-conditions container.
-      if (mode === 'mol' || mode === 'mass') {
-        container.hidden = true;
-      } else {
-        container.hidden = false;
-      }
-    }
-  }
-
-  knownMode.addEventListener('change', () =>
-    showMode(knownFields, knownMode.value, false)
-  );
-  outMode.addEventListener('change', () =>
-    showMode(outFields, outMode.value, true)
-  );
-
-  // initial state on page load
-  showMode(knownFields, knownMode.value, false);
-  showMode(outFields, outMode.value, true);
-
-  function populateSpecies(list){
-    knownS.innerHTML = ''; targetS.innerHTML = '';
-    list.forEach(s=>{
-      const o1 = document.createElement('option'); o1.value=o1.textContent=s;
-      const o2 = document.createElement('option'); o2.value=o2.textContent=s;
-      knownS.appendChild(o1); targetS.appendChild(o2);
-    });
-    if(list.length>1) targetS.selectedIndex = 1;
-  }
-
-function doParse(){
-  try{
-    const out = window.LocalChem.stoich.balanceReaction(eq.value);
-    populateSpecies(out.species);
-    result.innerHTML = `<div>Balanced species detected: <code>${out.species.join(' | ')}</code></div>`;
-    runB.disabled = false;     // ← enable compute now
-  }catch(err){
-    result.innerHTML = `<div class="error">${err.message}</div>`;
-    runB.disabled = true;
-  }
-}
-
-  function doRun(){
-    try{
+  async function doRun() {
+    try {
       const km = knownMode.value, om = outMode.value;
 
       const knownVals = {
@@ -256,7 +192,8 @@ function doParse(){
         T: +document.getElementById('st-out-T').value
       };
 
-      const res = window.LocalChem.stoich.stoichCompute({
+      // This matches the StoichRequest model in main.py
+      const payload = {
         eq: eq.value,
         knownSp: knownS.value,
         targetSp: targetS.value,
@@ -264,14 +201,32 @@ function doParse(){
         knownVals,
         outMode: om,
         outVals
+      };
+
+      // Call the Python backend instead of LocalChem.stoich.stoichCompute
+      const response = await fetch("http://127.0.0.1:8000/api/stoich", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       });
 
-      const ratio = `${res.nKnown.toFixed(6)} mol × (${res.coeffs[res.species.indexOf(targetS.value)]}/${res.coeffs[res.species.indexOf(knownS.value)]})`;
+      if (!response.ok) {
+        throw new Error(
+          "Backend error: " + response.status + " " + response.statusText
+        );
+      }
+
+      const res = await response.json();
+
+      // Show backend result
       result.innerHTML = `
-        <div><b>Result:</b> ${res.value.toPrecision(6)} ${res.unit}</div>
-        <div class="muted">Moles(target) = ${ratio}</div>
+        <div><b>Result (from backend):</b> ${Number(res.value).toPrecision(6)} ${res.unit}</div>
+        <div class="muted">${res.details || ""}</div>
       `;
-    }catch(err){
+    } catch (err) {
+      console.error(err);
       result.innerHTML = `<div class="error">${err.message}</div>`;
     }
   }
@@ -289,26 +244,6 @@ eq && eq.addEventListener('input', ()=> {
   document.getElementById('st-known').innerHTML = '';
   document.getElementById('st-target').innerHTML = '';
 });
-
-  // --- TESTING PYTHON BACKEND CONNECTION ---
-const testBtn = document.getElementById("testStoichAPI");
-if (testBtn) {
-  testBtn.addEventListener("click", async () => {
-    const response = await fetch("http://127.0.0.1:8000/api/stoich", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ value: 5 })  // sending a test value
-    });
-
-    const data = await response.json();
-
-    // display the result
-    document.getElementById("stoichResult").textContent =
-      "Backend result: " + data.result;
-  });
-}
   
 })();
 
