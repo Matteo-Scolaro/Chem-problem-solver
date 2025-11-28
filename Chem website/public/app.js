@@ -277,22 +277,59 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+       const data = await res.json();
       if (!res.ok){
         const msg = data.detail || res.statusText || "Backend error.";
         throw new Error(msg);
       }
 
+      // ---------- nicer display ----------
+      // 1) Main result line
       const mainLine =
-        `<b>Result (from backend):</b> ${data.value.toFixed(4)} ${data.unit}`;
-      const details = data.details
-        ? `<div class="mono muted" style="margin-top:.5rem;">${data.details}</div>`
-        : "";
+        `<b>Result:</b> ${data.value.toFixed(4)} ${data.unit}`;
 
-      result.innerHTML = `<div>${mainLine}</div>${details}`;
-    }catch(err){
-      console.error(err);
-      result.innerHTML = `<div class="error">${err.message}</div>`;
+      // 2) Split backend "details" into pieces
+      let calcLine = "";
+      let eqLine   = "";
+      let ratioLine= "";
+
+      if (data.details) {
+        const parts = data.details.split("|").map(p => p.trim());
+
+        // first part is always the main calculation, e.g. "V = nRT/P = ..."
+        calcLine = parts[0] || "";
+
+        for (const p of parts) {
+          if (p.startsWith("balanced_eq=")) {
+            eqLine = p.replace("balanced_eq=", "");
+          } else if (p.startsWith("knownSp=")) {
+            // e.g. "knownSp=O2 (coef=5) -> targetSp=CO2 (coef=3)"
+            ratioLine = p
+              .replace("knownSp=", "")
+              .replace("targetSp=", "")
+              .replace("->", " → ");
+          }
+        }
+      }
+
+      // 3) Build compact “work shown” block
+      let workHtml = "";
+      if (calcLine) {
+        workHtml += `<div>Calculation: <span class="mono">${calcLine}</span></div>`;
+      }
+      if (eqLine) {
+        workHtml += `<div>Balanced eq: <span class="mono">${eqLine}</span></div>`;
+      }
+      if (ratioLine) {
+        workHtml += `<div>Stoich ratio: <span class="mono">${ratioLine}</span></div>`;
+      }
+
+      result.innerHTML = `
+        <div>${mainLine}</div>
+        <div class="mono muted" style="margin-top:.35rem;">
+          ${workHtml}
+        </div>
+      `;
     }
   }
 
