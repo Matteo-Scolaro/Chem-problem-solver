@@ -291,15 +291,20 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         `<b>Result:</b> ${data.value.toFixed(4)} ${data.unit}`;
 
       // 2) Split backend "details" into pieces
-      let calcLine = "";
-      let eqLine   = "";
+      let nLine     = "";
+      let convLine  = "";
+      let eqLine    = "";
       let ratioLine = "";
 
       if (data.details) {
         const parts = data.details.split("|").map(p => p.trim());
 
-        // first part is always the main calculation, e.g. "V = nRT/P = ..."
-        calcLine = parts[0] || "";
+        // backend now sends:
+        // [0] = n_known step
+        // [1] = stoich step (we'll get from ratio string)
+        // [2] = conversion step (V = ... or m = ...)
+        nLine    = parts[0] || "";
+        convLine = parts[2] || "";
 
         for (const p of parts) {
           if (p.startsWith("balanced_eq=")) {
@@ -314,19 +319,23 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         }
       }
 
-      // 3) Build compact “work shown” block
+      // 3) Build compact “work shown” block in chronological order
       let workHtml = "";
-      if (calcLine) {
+      if (nLine) {
         workHtml +=
-          `<div>Calculation: <span class="mono">${calcLine}</span></div>`;
-      }
-      if (eqLine) {
-        workHtml +=
-          `<div>Balanced eq: <span class="mono">${eqLine}</span></div>`;
+          `<div>Moles of known: <span class="mono">${nLine}</span></div>`;
       }
       if (ratioLine) {
         workHtml +=
           `<div>Stoich ratio: <span class="mono">${ratioLine}</span></div>`;
+      }
+      if (convLine) {
+        workHtml +=
+          `<div>Conversion: <span class="mono">${convLine}</span></div>`;
+      }
+      if (eqLine) {
+        workHtml +=
+          `<div>Balanced eq: <span class="mono">${eqLine}</span></div>`;
       }
 
       result.innerHTML = `
