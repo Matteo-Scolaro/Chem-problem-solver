@@ -173,43 +173,50 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
 
 // ===== Stoichiometry wiring =====
 (function(){
-  const eq     = document.getElementById('st-eq');
-  const knownS = document.getElementById('st-known');
-  const targetS= document.getElementById('st-target');
-  const parseB = document.getElementById('st-parse');
-  const runB   = document.getElementById('st-run');
+  const eq     = document.getElementById("st-eq");
+  const knownS = document.getElementById("st-known");
+  const targetS= document.getElementById("st-target");
+  const parseB = document.getElementById("st-parse");
+  const runB   = document.getElementById("st-run");
 
-  const knownMode = document.getElementById('st-known-mode');
-  const outMode   = document.getElementById('st-out-mode');
-  const result    = document.getElementById('st-result');
+  const knownMode = document.getElementById("st-known-mode");
+  const outMode   = document.getElementById("st-out-mode");
+  const result    = document.getElementById("st-result");
 
-  // mode containers
-  const knownFields = document.getElementById('st-known-fields');
-  const outFields   = document.getElementById('st-out-fields');
+  const knownFields = document.getElementById("st-known-fields");
+  const outFields   = document.getElementById("st-out-fields");
 
   function showMode(container, mode, isOut){
-    container.querySelectorAll('.mode').forEach(d => d.hidden = true);
-    container.querySelectorAll('.mode-' + mode).forEach(d => d.hidden = false);
+    container.querySelectorAll(".mode").forEach(d => d.hidden = true);
+    container.querySelectorAll(".mode-" + mode).forEach(d => d.hidden = false);
+
+    // for outputs, hide the whole conditions box when not needed
+    if (isOut){
+      container.hidden = (mode === "mol" || mode === "mass");
+    }
   }
 
-  knownMode && knownMode.addEventListener('change', () => {
+  if (knownMode && knownFields){
     showMode(knownFields, knownMode.value, false);
-  });
-  outMode && outMode.addEventListener('change', () => {
-    showMode(outFields, outMode.value, true);
-  });
+    knownMode.addEventListener("change", () =>
+      showMode(knownFields, knownMode.value, false)
+    );
+  }
 
-  // set initial visibility
-  showMode(knownFields, knownMode.value, false);
-  showMode(outFields, outMode.value, true);
+  if (outMode && outFields){
+    showMode(outFields, outMode.value, true);
+    outMode.addEventListener("change", () =>
+      showMode(outFields, outMode.value, true)
+    );
+  }
 
   function populateSpecies(list){
-    knownS.innerHTML = '';
-    targetS.innerHTML = '';
+    knownS.innerHTML = "";
+    targetS.innerHTML = "";
     list.forEach(s => {
-      const o1 = document.createElement('option');
+      const o1 = document.createElement("option");
       o1.value = o1.textContent = s;
-      const o2 = document.createElement('option');
+      const o2 = document.createElement("option");
       o2.value = o2.textContent = s;
       knownS.appendChild(o1);
       targetS.appendChild(o2);
@@ -222,50 +229,37 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
       const out = window.LocalChem.stoich.balanceReaction(eq.value);
       populateSpecies(out.species);
       result.innerHTML =
-        `<div>Balanced species detected: <code>${out.species.join(' | ')}</code></div>`;
-      runB.disabled = false;     // enable Compute
+        `<div>Balanced species detected: <code>${out.species.join(" | ")}</code></div>`;
+      if (runB) runB.disabled = false;
     }catch(err){
+      console.error(err);
       result.innerHTML = `<div class="error">${err.message}</div>`;
-      runB.disabled = true;
+      if (runB) runB.disabled = true;
     }
   }
 
-  // REAL Python-powered compute
   async function doRun(){
     try{
       const km = knownMode.value;
       const om = outMode.value;
 
-      // 1) get a balanced equation string using the JS balancer
-      let balancedEq = eq.value;
-      try{
-        if (typeof balanceEquation === "function"){
-          const b = balanceEquation(eq.value);
-          if (b && b.balanced) balancedEq = b.balanced;
-        }
-      }catch(e){
-        console.warn("balanceEquation failed, using raw equation", e);
-      }
-
-      // 2) collect input values
       const knownVals = {
-        n:  +document.getElementById('st-known-mol').value,
-        g:  +document.getElementById('st-known-g').value,
-        M:  +document.getElementById('st-known-M').value,
-        VL: +document.getElementById('st-known-VL').value,
-        P:  +document.getElementById('st-P').value,
-        V:  +document.getElementById('st-V').value,
-        T:  +document.getElementById('st-T').value,
+        n:  +document.getElementById("st-known-mol").value,
+        g:  +document.getElementById("st-known-g").value,
+        M:  +document.getElementById("st-known-M").value,
+        VL: +document.getElementById("st-known-VL").value,
+        P:  +document.getElementById("st-P").value,
+        V:  +document.getElementById("st-V").value,
+        T:  +document.getElementById("st-T").value,
       };
-
       const outVals = {
-        M: +document.getElementById('st-out-M').value,
-        P: +document.getElementById('st-out-P').value,
-        T: +document.getElementById('st-out-T').value,
+        M: +document.getElementById("st-out-M").value,
+        P: +document.getElementById("st-out-P").value,
+        T: +document.getElementById("st-out-T").value,
       };
 
       const payload = {
-        eq: balancedEq,            // <<< send balanced equation to Python
+        eq: eq.value,   // Python will balance this
         knownSp: knownS.value,
         targetSp: targetS.value,
         knownMode: km,
@@ -302,16 +296,18 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
     }
   }
 
-  parseB && parseB.addEventListener('click', doParse);
-  runB && runB.addEventListener('click', doRun);
+  if (parseB) parseB.addEventListener("click", doParse);
+  if (runB)   parseB && runB.addEventListener("click", doRun);
 
   // disable Compute until a successful Parse
   if (runB) runB.disabled = true;
 
   // when reaction text changes, force re-parse
-  eq && eq.addEventListener('input', () => {
-    if (runB) runB.disabled = true;
-    document.getElementById('st-known').innerHTML = '';
-    document.getElementById('st-target').innerHTML = '';
-  });
+  if (eq){
+    eq.addEventListener("input", () => {
+      if (runB) runB.disabled = true;
+      knownS.innerHTML = "";
+      targetS.innerHTML = "";
+    });
+  }
 })();
