@@ -238,8 +238,8 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
     }
   }
 
-  async function doRun(){
-    try{
+  async function doRun() {
+    try {
       const km = knownMode.value;
       const om = outMode.value;
 
@@ -252,6 +252,7 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         V:  +document.getElementById("st-V").value,
         T:  +document.getElementById("st-T").value,
       };
+
       const outVals = {
         M: +document.getElementById("st-out-M").value,
         P: +document.getElementById("st-out-P").value,
@@ -259,7 +260,7 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
       };
 
       const payload = {
-        eq: eq.value,   // Python will balance this
+        eq: eq.value,              // Python will balance this
         knownSp: knownS.value,
         targetSp: targetS.value,
         knownMode: km,
@@ -268,17 +269,18 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
         outVals,
       };
 
+      // Loading message
       result.innerHTML =
         `<div class="mono muted">Contacting Python backend…</div>`;
 
       const res = await fetch("http://127.0.0.1:8000/api/stoich", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-       const data = await res.json();
-      if (!res.ok){
+      const data = await res.json();
+      if (!res.ok) {
         const msg = data.detail || res.statusText || "Backend error.";
         throw new Error(msg);
       }
@@ -291,7 +293,7 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
       // 2) Split backend "details" into pieces
       let calcLine = "";
       let eqLine   = "";
-      let ratioLine= "";
+      let ratioLine = "";
 
       if (data.details) {
         const parts = data.details.split("|").map(p => p.trim());
@@ -315,13 +317,16 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
       // 3) Build compact “work shown” block
       let workHtml = "";
       if (calcLine) {
-        workHtml += `<div>Calculation: <span class="mono">${calcLine}</span></div>`;
+        workHtml +=
+          `<div>Calculation: <span class="mono">${calcLine}</span></div>`;
       }
       if (eqLine) {
-        workHtml += `<div>Balanced eq: <span class="mono">${eqLine}</span></div>`;
+        workHtml +=
+          `<div>Balanced eq: <span class="mono">${eqLine}</span></div>`;
       }
       if (ratioLine) {
-        workHtml += `<div>Stoich ratio: <span class="mono">${ratioLine}</span></div>`;
+        workHtml +=
+          `<div>Stoich ratio: <span class="mono">${ratioLine}</span></div>`;
       }
 
       result.innerHTML = `
@@ -330,17 +335,20 @@ if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-revers
           ${workHtml}
         </div>
       `;
+    } catch (err) {
+      console.error(err);
+      result.innerHTML = `<div class="error">${err.message}</div>`;
     }
   }
 
   if (parseB) parseB.addEventListener("click", doParse);
-  if (runB)   parseB && runB.addEventListener("click", doRun);
+  if (runB)   runB.addEventListener("click", doRun);
 
   // disable Compute until a successful Parse
   if (runB) runB.disabled = true;
 
   // when reaction text changes, force re-parse
-  if (eq){
+  if (eq) {
     eq.addEventListener("input", () => {
       if (runB) runB.disabled = true;
       knownS.innerHTML = "";
