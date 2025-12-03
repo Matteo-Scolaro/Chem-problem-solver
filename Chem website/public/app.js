@@ -138,37 +138,77 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   });
 })();
 
-// ===== Aufbau tool wiring =====
-(function(){
-  const form = document.getElementById('aufbau-form'); // optional now
-  const btn  = document.getElementById('aufbau-run');
-  const inp  = document.getElementById('aufbau-input');
-  const shCB = document.getElementById('aufbau-shorthand');
-  const cfg  = document.getElementById('aufbau-config');
-  const sh   = document.getElementById('aufbau-sh');
-  const dia  = document.getElementById('aufbau-diagram');
+// ===== Aufbau tool wiring (via Python backend) =====
+(function () {
+  const form = document.getElementById("aufbau-form"); // optional / can be null
+  const btn  = document.getElementById("aufbau-run");
+  const inp  = document.getElementById("aufbau-input");
+  const shCB = document.getElementById("aufbau-shorthand");
+  const cfg  = document.getElementById("aufbau-config");
+  const sh   = document.getElementById("aufbau-sh");
+  const dia  = document.getElementById("aufbau-diagram");
+  const qnEl = document.getElementById("auf-qn");
 
-  function run(e){
-    e && e.preventDefault();
-    try{
-      const res = window.LocalChem.localAufbau(inp.value, shCB.checked);
-      const qn  = document.getElementById('auf-qn');
-      qn.innerHTML = res.qnHtml
-      cfg.innerHTML = res.configFullHtml;
-      sh.innerHTML  = res.shorthandHtml;
-      dia.innerHTML = res.diagramHtml;
-      const wrap = dia.querySelector('.orb-diagram');
-if (wrap) wrap.style.display = 'flex', wrap.style.flexDirection = 'column-reverse', wrap.style.gap = '1rem';
-    }catch(err){
-      cfg.innerHTML = '';
-      sh.innerHTML  = '';
+  async function run(e) {
+    if (e) e.preventDefault();
+
+    const raw = (inp.value || "").trim();
+    const useSh = !!(shCB && shCB.checked);
+
+    if (!raw) {
+      cfg.innerHTML = "";
+      sh.innerHTML  = "";
+      dia.innerHTML = `<div class="error">Enter an element symbol or atomic number.</div>`;
+      if (qnEl) qnEl.innerHTML = "";
+      return;
+    }
+
+    // loading state
+    if (qnEl) qnEl.innerHTML = `<span class="mono muted">Building configuration…</span>`;
+    cfg.innerHTML = "";
+    sh.innerHTML  = "";
+    dia.innerHTML = "";
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/aufbau", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: raw,
+          shorthand: useSh
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data.detail || res.statusText || "Backend error.";
+        throw new Error(msg);
+      }
+
+      // Python should return: qnHtml, configFullHtml, shorthandHtml, diagramHtml
+      if (qnEl) qnEl.innerHTML = data.qnHtml || "";
+      cfg.innerHTML = data.configFullHtml || "";
+      sh.innerHTML  = data.shorthandHtml  || "";
+      dia.innerHTML = data.diagramHtml    || "";
+
+      // make rows stack like your current design (top = lowest energy)
+      const wrap = dia.querySelector(".orb-diagram");
+      if (wrap) {
+        wrap.style.display = "flex";
+        wrap.style.flexDirection = "column-reverse";
+        wrap.style.gap = "1rem";
+      }
+    } catch (err) {
+      console.error(err);
+      cfg.innerHTML = "";
+      sh.innerHTML  = "";
       dia.innerHTML = `<div class="error">${err.message}</div>`;
-      qn.innerHTML  = '';
+      if (qnEl) qnEl.innerHTML = "";
     }
   }
 
-  btn && btn.addEventListener('click', run);
-  form && form.addEventListener('submit', run); // enter key still works
+  if (btn)  btn.addEventListener("click", run);
+  if (form) form.addEventListener("submit", run); // if you ever wrap it in a <form>, Enter will work
 })();
 
 // ===== Stoichiometry wiring =====
