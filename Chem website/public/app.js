@@ -138,77 +138,164 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   });
 })();
 
-// ===== Aufbau tool wiring (via Python backend) =====
-(function () {
-  const form = document.getElementById("aufbau-form"); // optional / can be null
-  const btn  = document.getElementById("aufbau-run");
-  const inp  = document.getElementById("aufbau-input");
-  const shCB = document.getElementById("aufbau-shorthand");
-  const cfg  = document.getElementById("aufbau-config");
-  const sh   = document.getElementById("aufbau-sh");
-  const dia  = document.getElementById("aufbau-diagram");
-  const qnEl = document.getElementById("auf-qn");
+// ===== Aufbau tool wiring (via Python backend, with HTML built in JS) =====
+(() => {
+  const inputEl    = document.getElementById("auf-input");
+  const shorthandEl= document.getElementById("auf-shorthand");
+  const runBtn     = document.getElementById("auf-run");
 
-  async function run(e) {
-    if (e) e.preventDefault();
+  const qnEl       = document.getElementById("auf-qn");
+  const cfgEl      = document.getElementById("auf-config");
+  const shEl       = document.getElementById("auf-short");
+  const diagramEl  = document.getElementById("auf-diagram");
 
-    const raw = (inp.value || "").trim();
-    const useSh = !!(shCB && shCB.checked);
+  if (!inputEl || !runBtn) return;
 
-    if (!raw) {
-      cfg.innerHTML = "";
-      sh.innerHTML  = "";
-      dia.innerHTML = `<div class="error">Enter an element symbol or atomic number.</div>`;
-      if (qnEl) qnEl.innerHTML = "";
+  // --- small periodic table just to convert symbol -> Z (Python still does all the Aufbau logic) ---
+  const SYMBOL_TO_Z = {
+    H:1, He:2,
+    Li:3, Be:4, B:5, C:6, N:7, O:8, F:9, Ne:10,
+    Na:11, Mg:12, Al:13, Si:14, P:15, S:16, Cl:17, Ar:18,
+    K:19, Ca:20, Sc:21, Ti:22, V:23, Cr:24, Mn:25, Fe:26, Co:27, Ni:28,
+    Cu:29, Zn:30, Ga:31, Ge:32, As:33, Se:34, Br:35, Kr:36,
+    Rb:37, Sr:38, Y:39, Zr:40, Nb:41, Mo:42, Tc:43, Ru:44, Rh:45, Pd:46,
+    Ag:47, Cd:48, In:49, Sn:50, Sb:51, Te:52, I:53, Xe:54,
+    Cs:55, Ba:56, La:57, Ce:58, Pr:59, Nd:60, Pm:61, Sm:62, Eu:63, Gd:64,
+    Tb:65, Dy:66, Ho:67, Er:68, Tm:69, Yb:70, Lu:71,
+    Hf:72, Ta:73, W:74, Re:75, Os:76, Ir:77, Pt:78, Au:79, Hg:80,
+    Tl:81, Pb:82, Bi:83, Po:84, At:85, Rn:86,
+    Fr:87, Ra:88, Ac:89, Th:90, Pa:91, U:92, Np:93, Pu:94, Am:95, Cm:96,
+    Bk:97, Cf:98, Es:99, Fm:100, Md:101, No:102, Lr:103,
+    Rf:104, Db:105, Sg:106, Bh:107, Hs:108, Mt:109, Ds:110, Rg:111,
+    Cn:112, Nh:113, Fl:114, Mc:115, Lv:116, Ts:117, Og:118,
+  };
+
+  const NOBLE_CORE = [
+    { Z:2,  symbol:"He" },
+    { Z:10, symbol:"Ne" },
+    { Z:18, symbol:"Ar" },
+    { Z:36, symbol:"Kr" },
+    { Z:54, symbol:"Xe" },
+    { Z:86, symbol:"Rn" },
+    { Z:118,symbol:"Og" },
+  ];
+
+  function zFromInput(raw) {
+    raw = raw.trim();
+    if (!raw) throw new Error("Enter an element symbol or atomic number.");
+
+    // atomic number
+    if (/^\d+$/.test(raw)) {
+      const Z = parseInt(raw, 10);
+      if (Z < 1 || Z > 118) throw new Error("Atomic number must be between 1 and 118.");
+      return Z;
+    }
+
+    // symbol (e.g. "os" -> "Os")
+    const sym = raw[0].toUpperCase() + raw.slice(1).toLowerCase();
+    const Z = SYMBOL_TO_Z[sym];
+    if (!Z) throw new Error(`Unknown element symbol: ${sym}`);
+    return Z;
+  }
+
+  function nobleCoreSymbol(Z) {
+    let core = null;
+    for (const item of NOBLE_CORE) {
+      if (item.Z < Z) core = item;
+    }
+    return core ? core.symbol : null;
+  }
+
+  function buildDiagramHtml(rows) {
+    return `
+      <div class="orb-diagram">
+        ${rows.map(row => `
+          <div class="orb-row">
+            <div class="orb-label">${row.label}</div>
+            <div class="orb-group">
+              ${row.boxes.map(box => `
+                <div class="orb-box">
+                  <span class="orb-arrow up">${box.up ? "↑" : ""}</span>
+                  <span class="orb-arrow down">${box.down ? "↓" : ""}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  async function runAufbau() {
+    const raw   = inputEl.value;
+    const useSh = shorthandEl.checked;
+
+    qnEl.innerHTML      = "";
+    cfgEl.innerHTML     = "";
+    shEl.innerHTML      = "";
+    diagramEl.innerHTML = "";
+
+    let Z;
+    try {
+      Z = zFromInput(raw);
+    } catch (err) {
+      diagramEl.innerHTML = `<div class="mono muted">${err.message}</div>`;
       return;
     }
 
-    // loading state
-    if (qnEl) qnEl.innerHTML = `<span class="mono muted">Building configuration…</span>`;
-    cfg.innerHTML = "";
-    sh.innerHTML  = "";
-    dia.innerHTML = "";
+    diagramEl.innerHTML = `<div class="mono muted">Contacting Python backend…</div>`;
 
+    let res;
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/aufbau", {
+      res = await fetch("http://127.0.0.1:8000/api/aufbau", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: raw,
-          shorthand: useSh
-        }),
+        body: JSON.stringify({ Z, use_shorthand: useSh }),
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        const msg = data.detail || res.statusText || "Backend error.";
-        throw new Error(msg);
-      }
-
-      // Python should return: qnHtml, configFullHtml, shorthandHtml, diagramHtml
-      if (qnEl) qnEl.innerHTML = data.qnHtml || "";
-      cfg.innerHTML = data.configFullHtml || "";
-      sh.innerHTML  = data.shorthandHtml  || "";
-      dia.innerHTML = data.diagramHtml    || "";
-
-      // make rows stack like your current design (top = lowest energy)
-      const wrap = dia.querySelector(".orb-diagram");
-      if (wrap) {
-        wrap.style.display = "flex";
-        wrap.style.flexDirection = "column-reverse";
-        wrap.style.gap = "1rem";
-      }
     } catch (err) {
-      console.error(err);
-      cfg.innerHTML = "";
-      sh.innerHTML  = "";
-      dia.innerHTML = `<div class="error">${err.message}</div>`;
-      if (qnEl) qnEl.innerHTML = "";
+      diagramEl.innerHTML = `<div class="mono muted">Cannot reach backend.</div>`;
+      return;
     }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msg = data.detail || res.statusText || "Backend error.";
+      diagramEl.innerHTML = `<div class="mono muted">${msg}</div>`;
+      return;
+    }
+
+    // --- Quantum numbers line ---
+    qnEl.innerHTML =
+      `Quantum numbers (last e⁻ in <span class="mono">${data.last_subshell}</span>): ` +
+      `n = ${data.last_n}, ℓ = ${data.last_l}, m<sub>ℓ</sub> = ${data.last_ml}, m<sub>s</sub> = ${data.last_ms}`;
+
+    // --- Full configuration ---
+    const cfgStr = (data.config || [])
+      .map(t => `${t.label}<sup>${t.electrons}</sup>`)
+      .join(" ");
+    cfgEl.innerHTML = `<strong>Configuration:</strong> ${cfgStr}`;
+
+    // --- Shorthand configuration ---
+    if (useSh && data.shorthand && data.shorthand.length) {
+      const core = nobleCoreSymbol(data.Z);
+      const shStr = data.shorthand
+        .map(t => `${t.label}<sup>${t.electrons}</sup>`)
+        .join(" ");
+      if (core) {
+        shEl.innerHTML = `<strong>Shorthand:</strong> [${core}] ${shStr}`;
+      } else {
+        shEl.innerHTML = `<strong>Shorthand:</strong> ${shStr}`;
+      }
+    } else {
+      shEl.innerHTML = `<strong>Shorthand:</strong> —`;
+    }
+
+    // --- Orbital diagram ---
+    diagramEl.innerHTML = buildDiagramHtml(data.orbitals || []);
   }
 
-  if (btn)  btn.addEventListener("click", run);
-  if (form) form.addEventListener("submit", run); // if you ever wrap it in a <form>, Enter will work
+  runBtn.addEventListener("click", runAufbau);
 })();
 
 // ===== Stoichiometry wiring =====
