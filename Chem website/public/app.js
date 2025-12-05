@@ -228,7 +228,7 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
 
   async function runAufbau() {
     const raw   = inputEl.value;
-    const useSh = shorthandEl.checked;
+    const useSh = shorthandEl.checked;   // now only for diagram
 
     // clear previous
     if (qnEl) qnEl.innerHTML = "";
@@ -248,10 +248,12 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
 
     let res;
     try {
+      // we ALWAYS ask Python for the noble-gas shorthand,
+      // the checkbox only changes how we draw the diagram.
       res = await fetch("http://127.0.0.1:8000/api/aufbau", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Z, use_shorthand: useSh }),
+        body: JSON.stringify({ Z, use_shorthand: true }),
       });
     } catch (err) {
       diagramEl.innerHTML = `<div class="mono muted">Cannot reach backend.</div>`;
@@ -273,29 +275,49 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
         `m<sub>ℓ</sub> = ${data.last_ml}, m<sub>s</sub> = ${data.last_ms}`;
     }
 
-    // ----- Full configuration -----
+    // ----- Full configuration (NO extra "Configuration:" label) -----
     const cfgStr = (data.config || [])
       .map(t => `${t.label}<sup>${t.electrons}</sup>`)
       .join(" ");
-    cfgEl.innerHTML = `<strong>Configuration:</strong> ${cfgStr}`;
+    cfgEl.innerHTML = cfgStr;
 
-    // ----- Shorthand configuration -----
-    if (useSh && data.shorthand && data.shorthand.length) {
-      const core = nobleCoreSymbol(data.Z);
-      const shStr = data.shorthand
-        .map(t => `${t.label}<sup>${t.electrons}</sup>`)
-        .join(" ");
-      if (core) {
-        shEl.innerHTML = `<strong>Shorthand:</strong> [${core}] ${shStr}`;
-      } else {
-        shEl.innerHTML = `<strong>Shorthand:</strong> ${shStr}`;
-      }
-    } else {
-      shEl.innerHTML = `<strong>Shorthand:</strong> —`;
+    // ----- Shorthand text (always present) -----
+    const coreSym = nobleCoreSymbol(data.Z);
+    let shStr = (data.shorthand || [])
+      .map(t => `${t.label}<sup>${t.electrons}</sup>`)
+      .join(" ");
+
+    if (coreSym && shStr) {
+      shStr = `[${coreSym}] ${shStr}`;
     }
+    // if there is no core (H, He) we just show the full config again
+    if (!shStr) {
+      shStr = cfgStr;
+    }
+    shEl.innerHTML = shStr;
 
     // ----- Orbital diagram -----
-    diagramEl.innerHTML = buildDiagramHtml(data.orbitals || []);
+    // start from either 1s (full) or from the first shorthand subshell (noble-gas core)
+    let rows = data.orbitals || [];
+
+    if (useSh && data.shorthand && data.shorthand.length) {
+      const firstLabel = data.shorthand[0].label;   // e.g. "6s"
+      const idx = rows.findIndex(r => r.label === firstLabel);
+      if (idx >= 0) {
+        rows = rows.slice(idx); // drop the core rows
+      }
+    }
+
+    // build HTML for the selected rows
+    diagramEl.innerHTML = buildDiagramHtml(rows);
+
+    // draw from bottom up: lowest energy at the bottom
+    const wrap = diagramEl.querySelector(".orb-diagram");
+    if (wrap) {
+      wrap.style.display = "flex";
+      wrap.style.flexDirection = "column-reverse";  // bottom-up stacking
+      wrap.style.gap = "1rem";
+    }
   }
 
   runBtn.addEventListener("click", runAufbau);
