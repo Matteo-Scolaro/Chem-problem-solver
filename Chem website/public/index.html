@@ -75,7 +75,7 @@
 </a>
  <a class="nav-card" href="#/stoich" data-view="stoich">
   <h3>Stoichiometry</h3>
-  <p>Mass ↔ moles, solutions (M), and gases (PV=nRT) with any reaction.</p>
+  <p>Mass ↔ moles, solutions (C), and gases (PV=nRT) with any reaction.</p>
 </a> 
 </section>
     
@@ -189,7 +189,7 @@
           <select id="st-known-mode">
             <option value="mol">Moles (mol)</option>
             <option value="mass">Mass (g)</option>
-            <option value="solution">Solution (M·V)</option>
+            <option value="solution">Solution (C·V)</option>
             <option value="gas">Gas (PV=nRT)</option>
           </select>
         </div>
@@ -198,7 +198,7 @@
           <select id="st-out-mode">
             <option value="mol">Moles (mol)</option>
             <option value="mass">Mass (g)</option>
-            <option value="solution">Solution volume (L at M)</option>
+            <option value="solution">Solution volume (L at C)</option>
             <option value="gas">Gas volume (L at P,T)</option>
           </select>
         </div>
@@ -235,7 +235,7 @@
       <!-- Output conditions -->
       <!-- Output conditions -->
 <div id="st-out-fields">
-  <!-- Output as: Solution volume (L at M) -->
+  <!-- Output as: Solution volume (L at C) -->
   <div class="mode mode-solution" hidden>
     <div class="grid1">
       <div>
@@ -1254,6 +1254,7 @@ const LC_Stoich = (()=>{
   <script src="app.js" defer></script>
 </body>
 </html>
+
 
 
 
