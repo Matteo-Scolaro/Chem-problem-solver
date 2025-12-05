@@ -138,20 +138,20 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   });
 })();
 
-// ===== Aufbau tool wiring (via Python backend, with HTML built in JS) =====
+// ===== Aufbau (Orbital Diagram) – Python backend version =====
 (() => {
-  const inputEl    = document.getElementById("auf-input");
-  const shorthandEl= document.getElementById("auf-shorthand");
-  const runBtn     = document.getElementById("auf-run");
+  const inputEl     = document.getElementById("aufbau-input");
+  const shorthandEl = document.getElementById("aufbau-shorthand");
+  const runBtn      = document.getElementById("aufbau-run");
 
-  const qnEl       = document.getElementById("auf-qn");
-  const cfgEl      = document.getElementById("auf-config");
-  const shEl       = document.getElementById("auf-short");
-  const diagramEl  = document.getElementById("auf-diagram");
+  const qnEl        = document.getElementById("auf-qn");
+  const cfgEl       = document.getElementById("aufbau-config");
+  const shEl        = document.getElementById("aufbau-sh");
+  const diagramEl   = document.getElementById("aufbau-diagram");
 
-  if (!inputEl || !runBtn) return;
+  if (!inputEl || !runBtn) return; // safety
 
-  // --- small periodic table just to convert symbol -> Z (Python still does all the Aufbau logic) ---
+  // --- minimal periodic table just to convert symbol -> Z ---
   const SYMBOL_TO_Z = {
     H:1, He:2,
     Li:3, Be:4, B:5, C:6, N:7, O:8, F:9, Ne:10,
@@ -184,14 +184,14 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
     raw = raw.trim();
     if (!raw) throw new Error("Enter an element symbol or atomic number.");
 
-    // atomic number
+    // numeric Z
     if (/^\d+$/.test(raw)) {
       const Z = parseInt(raw, 10);
       if (Z < 1 || Z > 118) throw new Error("Atomic number must be between 1 and 118.");
       return Z;
     }
 
-    // symbol (e.g. "os" -> "Os")
+    // symbol, normalize capitalization
     const sym = raw[0].toUpperCase() + raw.slice(1).toLowerCase();
     const Z = SYMBOL_TO_Z[sym];
     if (!Z) throw new Error(`Unknown element symbol: ${sym}`);
@@ -230,7 +230,8 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
     const raw   = inputEl.value;
     const useSh = shorthandEl.checked;
 
-    qnEl.innerHTML      = "";
+    // clear previous
+    if (qnEl) qnEl.innerHTML = "";
     cfgEl.innerHTML     = "";
     shEl.innerHTML      = "";
     diagramEl.innerHTML = "";
@@ -258,25 +259,27 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
     }
 
     const data = await res.json();
-
     if (!res.ok) {
       const msg = data.detail || res.statusText || "Backend error.";
       diagramEl.innerHTML = `<div class="mono muted">${msg}</div>`;
       return;
     }
 
-    // --- Quantum numbers line ---
-    qnEl.innerHTML =
-      `Quantum numbers (last e⁻ in <span class="mono">${data.last_subshell}</span>): ` +
-      `n = ${data.last_n}, ℓ = ${data.last_l}, m<sub>ℓ</sub> = ${data.last_ml}, m<sub>s</sub> = ${data.last_ms}`;
+    // ----- Quantum numbers -----
+    if (qnEl) {
+      qnEl.innerHTML =
+        `Quantum numbers (last e⁻ in <span class="mono">${data.last_subshell}</span>): ` +
+        `n = ${data.last_n}, ℓ = ${data.last_l}, ` +
+        `m<sub>ℓ</sub> = ${data.last_ml}, m<sub>s</sub> = ${data.last_ms}`;
+    }
 
-    // --- Full configuration ---
+    // ----- Full configuration -----
     const cfgStr = (data.config || [])
       .map(t => `${t.label}<sup>${t.electrons}</sup>`)
       .join(" ");
     cfgEl.innerHTML = `<strong>Configuration:</strong> ${cfgStr}`;
 
-    // --- Shorthand configuration ---
+    // ----- Shorthand configuration -----
     if (useSh && data.shorthand && data.shorthand.length) {
       const core = nobleCoreSymbol(data.Z);
       const shStr = data.shorthand
@@ -291,7 +294,7 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
       shEl.innerHTML = `<strong>Shorthand:</strong> —`;
     }
 
-    // --- Orbital diagram ---
+    // ----- Orbital diagram -----
     diagramEl.innerHTML = buildDiagramHtml(data.orbitals || []);
   }
 
