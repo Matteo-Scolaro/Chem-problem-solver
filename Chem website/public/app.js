@@ -49,10 +49,11 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   const input = $('#eq-react');
   const out   = $('#eq-out');
   const btn   = $('#eq-run');
-  if (!btn) return;   // safety
+
+  if (!btn || !input || !out) return; // safety: UI not on this page
 
   async function runBalance() {
-    const react = (input.value || '').trim();
+    const react = (input.value || "").trim();
 
     if (!react) {
       out.textContent = "Enter a chemical equation, e.g. H2 + O2 -> H2O";
@@ -66,7 +67,7 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
       const res = await fetch("http://127.0.0.1:8000/api/balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eq: react })   // <-- MUST be 'eq'
+        body: JSON.stringify({ eq: react })   // this MUST be 'eq'
       });
 
       const d = await res.json();
@@ -77,25 +78,10 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
         return;
       }
 
-      // d has: input_eq, balanced_eq, species, coefficients
+      // ---- build text output ----
       const coefLine = d.species
         .map((sp, i) => `${d.coefficients[i]} ${sp}`)
-        .join(', ');
-
-      out.textContent =
-        `BALANCED:\n${d.balanced_eq}\n\n` +
-        `COEFFICIENTS:\n${coefLine}`;
-    } catch (err) {
-      console.error(err);
-      out.textContent = "Error: could not reach backend.";
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  const coefLine = d.species
-        .map((sp, i) => `${d.coefficients[i]} ${sp}`)
-        .join(', ');
+        .join(", ");
 
       let text =
         `BALANCED:\n${d.balanced_eq}\n\n` +
@@ -109,8 +95,15 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
       }
 
       out.textContent = text;
+    } catch (err) {
+      console.error(err);
+      out.textContent = "Error: could not reach backend.";
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
-  on(btn, 'click', runBalance);
+  on(btn, "click", runBalance);
 })();
 
 /* ================= VSEPR ================= */
