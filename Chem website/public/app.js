@@ -93,6 +93,23 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
     }
   }
 
+  const coefLine = d.species
+        .map((sp, i) => `${d.coefficients[i]} ${sp}`)
+        .join(', ');
+
+      let text =
+        `BALANCED:\n${d.balanced_eq}\n\n` +
+        `COEFFICIENTS:\n${coefLine}`;
+
+      if (typeof d.delta_H_kJ === "number") {
+        text += `\n\nΔH° (298 K):\n${d.delta_H_kJ.toFixed(2)} kJ`;
+      }
+      if (d.delta_H_note) {
+        text += `\n\nNOTE:\n${d.delta_H_note}`;
+      }
+
+      out.textContent = text;
+
   on(btn, 'click', runBalance);
 })();
 
