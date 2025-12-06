@@ -44,38 +44,83 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   // let the browser set the hash; router will do the rest
 }));
 
-/* ================= EQUATION BUILDER ================= */
-(function(){
-  const input = $('#eq-react'), out = $('#eq-out'), btn = $('#eq-run');
-  if(!btn) return;
+/* ================= EQUATION BUILDER (Python backend) ================= */
+(function () {
+  const input = $('#eq-react');
+  const out   = $('#eq-out');
+  const btn   = $('#eq-run');
+  if (!btn) return;   // safety
 
   on(btn, 'click', async () => {
     const react = (input.value || '').trim();
-    if(!react){ out.textContent = "Enter reactants (e.g., H2 + O2 -> H2O)"; return; }
-    btn.disabled = true;
-    out.textContent = "Balancing…";
-    try{
-      const d = await LocalChem.localSolveEquation(react);
-      if(d.error){ out.textContent = `Error: ${d.error}`; return; }
 
+    if (!react) {
+      out.textContent = "Enter reactants (e.g., H2 + O2 -> H2O)";
+      return;
+    }
+
+    btn.disabled   = true;
+    out.textContent = "Contacting Python backend…";
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/eq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ equation: react })   // or whatever your backend expects
+      });
+
+      const d = await res.json();
+
+      if (!res.ok) {
+        const msg = d.detail || d.error || res.statusText || "Backend error.";
+        out.textContent = `Error: ${msg}`;
+        return;
+      }
+
+      // ---- build a nice text block like before ----
       const lines = [];
-      lines.push(`BALANCED:\n${d.balanced_equation}\n`);
-      if (Array.isArray(d.products) && d.products.length){
+
+      // 1) balanced equation (required)
+      if (d.balanced_equation) {
+        lines.push(`BALANCED:\n${d.balanced_equation}\n`);
+      }
+
+      // 2) list of reactants / products (optional)
+      if (Array.isArray(d.products) && d.products.length) {
         lines.push(`PRODUCTS:\n${d.products.join(', ')}\n`);
       }
-      if (d.reaction_type) lines.push(`TYPE:\n${d.reaction_type}\n`);
-      if (typeof d.enthalpy_kJ_per_mol === 'number')
+
+      if (Array.isArray(d.reactants) && d.reactants.length) {
+        lines.push(`REACTANTS:\n${d.reactants.join(', ')}\n`);
+      }
+
+      // 3) type of reaction (optional)
+      if (d.reaction_type) {
+        lines.push(`TYPE:\n${d.reaction_type}\n`);
+      }
+
+      // 4) enthalpy (optional)
+      if (typeof d.enthalpy_kJ_per_mol === 'number') {
         lines.push(`ΔH° (298 K):\n${d.enthalpy_kJ_per_mol} kJ/mol\n`);
-      if (Array.isArray(d.mechanism) && d.mechanism.length){
+      }
+
+      // 5) any “steps” or “work shown” array from Python (optional)
+      if (Array.isArray(d.steps) && d.steps.length) {
+        lines.push(`STEPS:\n• ${d.steps.join('\n• ')}\n`);
+      } else if (Array.isArray(d.mechanism) && d.mechanism.length) {
+        // if you kept the old name "mechanism"
         lines.push(`MECHANISM (OUTLINE):\n• ${d.mechanism.join('\n• ')}\n`);
       }
-      if (d.notes) lines.push(`NOTES:\n${d.notes}`);
+
+      if (d.notes) {
+        lines.push(`NOTES:\n${d.notes}`);
+      }
 
       out.textContent = lines.join('\n');
-    }catch(err){
+    } catch (err) {
       console.error(err);
-      out.textContent = "Serverless solver error.";
-    }finally{
+      out.textContent = "Error talking to Python backend.";
+    } finally {
       btn.disabled = false;
     }
   });
