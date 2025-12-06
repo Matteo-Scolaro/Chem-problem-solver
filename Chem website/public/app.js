@@ -51,22 +51,22 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   const btn   = $('#eq-run');
   if (!btn) return;   // safety
 
-  on(btn, 'click', async () => {
+  async function runBalance() {
     const react = (input.value || '').trim();
 
     if (!react) {
-      out.textContent = "Enter reactants (e.g., H2 + O2 -> H2O)";
+      out.textContent = "Enter a chemical equation, e.g. H2 + O2 -> H2O";
       return;
     }
 
-    btn.disabled   = true;
+    btn.disabled    = true;
     out.textContent = "Contacting Python backend…";
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/eq", {
+      const res = await fetch("http://127.0.0.1:8000/api/balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ equation: react })   // or whatever your backend expects
+        body: JSON.stringify({ eq: react })   // <-- MUST be 'eq'
       });
 
       const d = await res.json();
@@ -77,53 +77,23 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
         return;
       }
 
-      // ---- build a nice text block like before ----
-      const lines = [];
+      // d has: input_eq, balanced_eq, species, coefficients
+      const coefLine = d.species
+        .map((sp, i) => `${d.coefficients[i]} ${sp}`)
+        .join(', ');
 
-      // 1) balanced equation (required)
-      if (d.balanced_equation) {
-        lines.push(`BALANCED:\n${d.balanced_equation}\n`);
-      }
-
-      // 2) list of reactants / products (optional)
-      if (Array.isArray(d.products) && d.products.length) {
-        lines.push(`PRODUCTS:\n${d.products.join(', ')}\n`);
-      }
-
-      if (Array.isArray(d.reactants) && d.reactants.length) {
-        lines.push(`REACTANTS:\n${d.reactants.join(', ')}\n`);
-      }
-
-      // 3) type of reaction (optional)
-      if (d.reaction_type) {
-        lines.push(`TYPE:\n${d.reaction_type}\n`);
-      }
-
-      // 4) enthalpy (optional)
-      if (typeof d.enthalpy_kJ_per_mol === 'number') {
-        lines.push(`ΔH° (298 K):\n${d.enthalpy_kJ_per_mol} kJ/mol\n`);
-      }
-
-      // 5) any “steps” or “work shown” array from Python (optional)
-      if (Array.isArray(d.steps) && d.steps.length) {
-        lines.push(`STEPS:\n• ${d.steps.join('\n• ')}\n`);
-      } else if (Array.isArray(d.mechanism) && d.mechanism.length) {
-        // if you kept the old name "mechanism"
-        lines.push(`MECHANISM (OUTLINE):\n• ${d.mechanism.join('\n• ')}\n`);
-      }
-
-      if (d.notes) {
-        lines.push(`NOTES:\n${d.notes}`);
-      }
-
-      out.textContent = lines.join('\n');
+      out.textContent =
+        `BALANCED:\n${d.balanced_eq}\n\n` +
+        `COEFFICIENTS:\n${coefLine}`;
     } catch (err) {
       console.error(err);
-      out.textContent = "Error talking to Python backend.";
+      out.textContent = "Error: could not reach backend.";
     } finally {
       btn.disabled = false;
     }
-  });
+  }
+
+  on(btn, 'click', runBalance);
 })();
 
 /* ================= VSEPR ================= */
