@@ -430,11 +430,13 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
         T:  +document.getElementById("st-T").value,
       };
 
-      const outVals = {
-        M: +document.getElementById("st-out-M").value,
-        P: +document.getElementById("st-out-P").value,
-        T: +document.getElementById("st-out-T").value,
-      };
+     const outVals = {
+  M:  +document.getElementById("st-out-M")?.value || 0,
+  VL: +document.getElementById("st-out-VL")?.value || 0,
+  P:  +document.getElementById("st-out-P")?.value || +document.getElementById("st-out-P2")?.value || 0,
+  V:  +document.getElementById("st-out-V")?.value || +document.getElementById("st-out-V2")?.value || 0,
+  T:  +document.getElementById("st-out-T")?.value || +document.getElementById("st-out-T2")?.value || 0,
+};
 
       const payload = {
         eq: eq.value,              // Python will balance this
