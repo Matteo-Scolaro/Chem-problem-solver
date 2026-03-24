@@ -196,47 +196,68 @@
         <div>
           <label>Output as</label>
           <select id="st-out-mode">
-            <option value="mol">Moles (mol)</option>
-            <option value="mass">Mass (g)</option>
-            <option value="solution">Solution volume (L at C)</option>
-            <option value="gas">Gas volume (L at P,T)</option>
-          </select>
+          <option value="mol">Moles (mol)</option>
+          <option value="mass">Mass (g)</option>
+          <option value="solution_volume">Solution volume (L at C)</option>
+          <option value="solution_concentration">Solution concentration (mol/L)</option>
+          <option value="gas_volume">Gas volume (L at P,T)</option>
+          <option value="gas_pressure">Gas pressure (kPa at V,T)</option>
+          <option value="gas_temperature">Gas temperature (K at P,V)</option>
+        </select>
         </div>
       </div>
 
-      <!-- Known inputs -->
-      <div id="st-known-fields">
-        <!-- mol -->
-        <div class="mode mode-mol">
-          <label>n (mol)</label>
-          <input id="st-known-mol" type="number" step="any" placeholder="e.g., 0.50">
-        </div>
-        <!-- mass -->
-        <div class="mode mode-mass" hidden>
-          <label>m (g)</label>
-          <input id="st-known-g" type="number" step="any" placeholder="e.g., 44.0">
-        </div>
-        <!-- solution -->
-        <div class="mode mode-solution" hidden>
-          <div class="grid2">
-            <div><label>C (mol/L)</label><input id="st-known-M" type="number" step="any" placeholder="e.g., 1.0"></div>
-            <div><label>V (L)</label><input id="st-known-VL" type="number" step="any" placeholder="e.g., 0.250"></div>
-          </div>
-        </div>
-        <!-- gas -->
-        <div class="mode mode-gas" hidden>
-  <div class="grid3">
-    <div><label>P (kPa)</label><input id="st-P" type="number" step="any" placeholder="e.g., 101.3"></div>
-    <div><label>V (L)</label><input id="st-V" type="number" step="any" placeholder="e.g., 2.00"></div>
-    <div><label>T (K)</label><input id="st-T" type="number" step="any" placeholder="e.g., 298"></div>
+<!-- Known inputs -->
+<div id="st-known-fields">
+  <!-- mol -->
+  <div class="mode mode-mol">
+    <label>n (mol)</label>
+    <input id="st-known-mol" type="number" step="any" placeholder="e.g., 0.50">
+  </div>
+
+  <!-- mass -->
+  <div class="mode mode-mass" hidden>
+    <label>m (g)</label>
+    <input id="st-known-g" type="number" step="any" placeholder="e.g., 44.0">
+  </div>
+
+  <!-- solution -->
+  <div class="mode mode-solution" hidden>
+    <div class="grid2">
+      <div>
+        <label>C (mol/L)</label>
+        <input id="st-known-M" type="number" step="any" placeholder="e.g., 1.0">
+      </div>
+      <div>
+        <label>V (L)</label>
+        <input id="st-known-VL" type="number" step="any" placeholder="e.g., 0.250">
+      </div>
+    </div>
+  </div>
+
+  <!-- gas -->
+  <div class="mode mode-gas" hidden>
+    <div class="grid3">
+      <div>
+        <label>P (kPa)</label>
+        <input id="st-P" type="number" step="any" placeholder="e.g., 101.3">
+      </div>
+      <div>
+        <label>V (L)</label>
+        <input id="st-V" type="number" step="any" placeholder="e.g., 2.00">
+      </div>
+      <div>
+        <label>T (K)</label>
+        <input id="st-T" type="number" step="any" placeholder="e.g., 298">
+      </div>
+    </div>
   </div>
 </div>
 
-      <!-- Output conditions -->
-      <!-- Output conditions -->
+<!-- Output conditions -->
 <div id="st-out-fields">
-  <!-- Output as: Solution volume (L at C) -->
-  <div class="mode mode-solution" hidden>
+  <!-- solution volume -->
+  <div class="mode mode-solution_volume" hidden>
     <div class="grid1">
       <div>
         <label>C (mol/L)</label>
@@ -245,9 +266,19 @@
     </div>
   </div>
 
-  <!-- Output as: Gas volume (L at P,T) -->
-  <div class="mode mode-gas" hidden>
-    <div class="grid3">
+  <!-- solution concentration -->
+  <div class="mode mode-solution_concentration" hidden>
+    <div class="grid1">
+      <div>
+        <label>V (L)</label>
+        <input id="st-out-VL" type="number" step="any" placeholder="e.g., 0.250">
+      </div>
+    </div>
+  </div>
+
+  <!-- gas volume -->
+  <div class="mode mode-gas_volume" hidden>
+    <div class="grid2">
       <div>
         <label>P (kPa)</label>
         <input id="st-out-P" type="number" step="any" placeholder="e.g., 101.3">
@@ -256,14 +287,37 @@
         <label>T (K)</label>
         <input id="st-out-T" type="number" step="any" placeholder="e.g., 298">
       </div>
-      <div style="align-self:end;opacity:.8;">
-        Uses R = 8.314 kPa·L·mol⁻¹·K⁻¹
+    </div>
+  </div>
+
+  <!-- gas pressure -->
+  <div class="mode mode-gas_pressure" hidden>
+    <div class="grid2">
+      <div>
+        <label>V (L)</label>
+        <input id="st-out-V" type="number" step="any" placeholder="e.g., 2.00">
+      </div>
+      <div>
+        <label>T (K)</label>
+        <input id="st-out-T2" type="number" step="any" placeholder="e.g., 298">
+      </div>
+    </div>
+  </div>
+
+  <!-- gas temperature -->
+  <div class="mode mode-gas_temperature" hidden>
+    <div class="grid2">
+      <div>
+        <label>P (kPa)</label>
+        <input id="st-out-P2" type="number" step="any" placeholder="e.g., 101.3">
+      </div>
+      <div>
+        <label>V (L)</label>
+        <input id="st-out-V2" type="number" step="any" placeholder="e.g., 2.00">
       </div>
     </div>
   </div>
 </div>
-      </div>
-
       <div>
         <button id="st-parse" type="button">Parse reaction</button>
         <button id="st-run" class="primary" type="button">Compute</button>
