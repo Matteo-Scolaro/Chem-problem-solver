@@ -135,29 +135,51 @@ $$('.nav-card').forEach(a => on(a, 'click', e => {
   });
 })();
 
-/* ================= DRAWINGS ================= */
+/* ================= DRAWINGS (Python backend) ================= */
 (function(){
-  const sel = $('#draw-symbol'), btn = $('#draw-run');
-  const bohr = $('#svg-bohr'), br = $('#svg-br'), lew = $('#svg-lewis'), notes = $('#draw-notes');
-  if(!btn) return;
+  const sel = $('#draw-symbol');
+  const btn = $('#draw-run');
+  const bohr = $('#svg-bohr');
+  const br = $('#svg-br');
+  const lew = $('#svg-lewis');
+  const notes = $('#draw-notes');
+  if (!btn) return;
 
   // populate first 20
   const order = ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca'];
   sel.innerHTML = order.map(s => `<option value="${s}">${s}</option>`).join('');
 
-  on(btn,'click', async ()=>{
+  on(btn, 'click', async () => {
     const sym = sel.value;
-    btn.disabled = true; bohr.innerHTML = br.innerHTML = lew.innerHTML = ''; notes.textContent = '';
-    try{
-      const d = await LocalChem.localDrawElement(sym);
+    btn.disabled = true;
+    bohr.innerHTML = '';
+    br.innerHTML = '';
+    lew.innerHTML = '';
+    notes.textContent = '';
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/draw_element", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: sym })
+      });
+
+      const d = await res.json();
+
+      if (!res.ok) {
+        const msg = d.detail || d.error || res.statusText || "Backend error.";
+        notes.textContent = `Drawing error: ${msg}`;
+        return;
+      }
+
       bohr.innerHTML = d.bohr || '';
       br.innerHTML   = d.bohr_rutherford || '';
       lew.innerHTML  = d.lewis || '';
       notes.textContent = d.notes || '';
-    }catch(e){
+    } catch (e) {
       console.error(e);
       notes.textContent = 'Drawing error.';
-    }finally{
+    } finally {
       btn.disabled = false;
     }
   });
